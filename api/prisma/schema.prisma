@@ -1,0 +1,603 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int         @id @default(autoincrement())
+  fullName        String
+  avatarUrl       String?
+  email           String      @unique
+  isEmailVerified Boolean     @default(false)
+  hashedPassword  String?
+  provider        AccountType @default(DEFAULT)
+
+  activateTokens      ActivateToken[]
+  passwordResetTokens PasswordResetToken[]
+  schools             MemberOnSchools[]
+  subjects            MemberOnSubject[]
+  groups              MemberOnGroup[]
+  admissions          InviteAdmission[]
+  submissions         Submission[]
+  marks               MarkOnRow[]
+  fingerprints        Fingerprint[]
+  attendance          Attendance[]
+  logs                Log[]                @relation("author")
+  logsOn              Log[]                @relation("LogOn")
+  timetableEntriesAsTeacher TimetableEntry[] @relation("TeacherOnTimetable")
+  announcementMessages  AnnouncementMessage[]  @relation("UserAnnouncementMessages")
+  examMarks ExamMark[]
+  markAttendanceStatuses MarkAttendanceStatus[]
+
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AccountType {
+  DEFAULT
+  GOOGLE
+}
+
+model ActivateToken {
+  id          Int       @id @default(autoincrement())
+  token       String    @unique
+  activatedAt DateTime?
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InviteToken {
+  id       Int    @id @default(autoincrement())
+  token    String @unique
+  role     Role   @default(STUDENT)
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model InviteAdmission {
+  id Int @id @default(autoincrement())
+
+  token  String
+  status AdmissionStatus @default(PENDING)
+  role   Role            @default(STUDENT)
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AdmissionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model PasswordResetToken {
+  id      Int       @id @default(autoincrement())
+  token   String    @unique
+  resetAt DateTime?
+  userId  Int
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model School {
+  id          String  @id @default(cuid())
+  name        String
+  logoUrl     String?
+  description String?
+
+  members          MemberOnSchools[]
+  subjects         Subject[]
+  membersOnSubject MemberOnSubject[]
+  groups           Group[]
+  invites          InviteToken[]
+  admissions       InviteAdmission[]
+  devices          DeviceCredentials[]
+  fingerprints     Fingerprint[]
+  Log              Log[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MemberOnSchools {
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  role Role @default(STUDENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, schoolId])
+  @@unique([userId, schoolId])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model Fingerprint {
+  id      Int    @id @default(autoincrement())
+  content String
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, userId])
+}
+
+model Subject {
+  id       Int     @id @default(autoincrement())
+  name     String
+  imageUrl String?
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  users          MemberOnSubject[]
+  topics         Topic[]
+  assignments    Assignment[]
+  marksTable     MarksTableRow[]
+  attendSessions AttendanceSession[]
+  logs           Log[]
+  timetableEntries TimetableEntry[]
+  examEntries ExamEntry[]
+  examMarks ExamMark[]
+
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MemberOnSubject {
+  subjectId Int
+  subject   Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      SubjectRole @default(STUDENT)
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@id([subjectId, userId])
+  @@unique([subjectId, userId])
+}
+
+enum SubjectRole {
+  TEACHER
+  STUDENT
+}
+
+model Log {
+  id      Int     @id @default(autoincrement())
+  details String?
+
+  action Action
+
+  subjectId Int?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  userId    Int?
+  user      User?    @relation("LogOn", fields: [userId], references: [id], onDelete: Cascade)
+  authorId  Int
+  author    User     @relation("author", fields: [authorId], references: [id], onDelete: Cascade)
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Action {
+  MARK_CHANGE
+  MARK_TABLE_ADD
+  MARK_TABLE_EDIT
+  MARK_TABLE_DELETE
+  DOCUMENT_ADD
+  DOCUMENT_EDIT
+  DOCUMENT_DELETE
+  ASSIGNMENT_ADD
+  ASSIGNMENT_EDIT
+  ASSIGNMENT_DELETE
+  ATTENDANCE_SESSION_ADD
+  ATTENDANCE_SESSION_EDIT
+  ATTENDANCE_SESSION_DELETE
+  ATTENDANCE_DELETE
+}
+
+model AttendanceSession {
+  id             Int      @id @default(autoincrement())
+  name           String
+  expirationDate DateTime
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  attenders Attendance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Attendance {
+  id Int @id @default(autoincrement())
+
+  sessionId Int
+  session   AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeviceCredentials {
+  id             Int    @id @default(autoincrement())
+  credentialId   String @unique
+  hashedPassword String
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Topic {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  documents Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Assignment {
+  id       Int      @id @default(autoincrement())
+  title    String
+  deadline DateTime
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  document    Document?
+  submissions Submission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Document {
+  id       Int          @id @default(autoincrement())
+  name     String
+  url      String
+  publicId String
+  format   String
+  type     DocumentType
+
+  topicId Int?
+  topic   Topic? @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  assignmentId Int?        @unique
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  submissionId Int?        @unique
+  submission   Submission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum DocumentType {
+  IMAGE
+  VIDEO
+  RAW
+}
+
+model Submission {
+  id Int @id @default(autoincrement())
+
+  studentId    Int
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignmentId Int
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  document Document?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, assignmentId])
+}
+
+model Group {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  parentId Int?
+  parent   Group? @relation("GroupToGroup", fields: [parentId], references: [id], onDelete: Cascade)
+
+  children Group[] @relation("GroupToGroup")
+
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  members MemberOnGroup[]
+  timetableEntries TimetableEntry[]
+  markAttendances MarkAttendance[]
+
+
+  announcementBoard AnnouncementBoard[]
+  exams Exam[]
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MemberOnGroup {
+  groupId Int
+  group   Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId  Int
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@unique([groupId, userId])
+}
+
+model MarksTableRow {
+  id    Int     @id @default(autoincrement())
+  name  String
+  max   Float
+  count Boolean
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  marks MarkOnRow[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MarkOnRow {
+  id    Int   @id @default(autoincrement())
+  value Float
+
+  tableRowId Int
+  row        MarksTableRow @relation(fields: [tableRowId], references: [id], onDelete: Cascade)
+
+  studentId Int
+  student   User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tableRowId, studentId])
+}
+
+
+model Timeslot {
+  id        Int      @id @default(autoincrement())
+  dayOfWeek Int      // 0 = Sunday, 1 = Monday ... 6 = Saturday
+  startTime String   // e.g. "09:00"
+  endTime   String   // e.g. "10:00"
+
+  timetableEntries TimetableEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([dayOfWeek, startTime, endTime]) // unique timeslot per day/time
+}
+
+model TimetableEntry {
+  id        Int    @id @default(autoincrement())
+
+  groupId   Int
+  group     Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  teacherId Int
+  teacher   User   @relation("TeacherOnTimetable", fields: [teacherId], references: [id])
+
+  timeslotId Int
+  timeslot  Timeslot @relation(fields: [timeslotId], references: [id], onDelete: Cascade)
+
+  // Optional additions:
+  room      String?
+  weekType  WeekType @default(BOTH)
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Constraints to avoid conflicts:
+  @@unique([groupId, timeslotId])
+  @@unique([teacherId, timeslotId])
+}
+
+enum WeekType {
+  A
+  B
+  BOTH
+}
+
+//////////////////
+model AnnouncementBoard {
+  id        Int                   @id @default(autoincrement())
+  groupId   Int                   
+  group     Group                @relation(fields: [groupId], references: [id])
+  messages  AnnouncementMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AnnouncementMessage {
+  id           Int       @id @default(autoincrement())
+  content      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  boardId      Int
+  board        AnnouncementBoard @relation(fields: [boardId], references: [id])
+
+  createdById  Int
+  createdBy    User      @relation("UserAnnouncementMessages", fields: [createdById], references: [id])
+}
+
+////////////////////////
+model Exam {
+  id        Int         @id @default(autoincrement())
+  name      String
+  batch     String?     // optional, like "Batch A" or "Science Stream"
+
+  groupId   Int
+  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  entries   ExamEntry[]
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model ExamEntry {
+  id        Int         @id @default(autoincrement())
+
+  subjectId Int
+  subject   Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  examId    Int
+  exam      Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  date      DateTime
+  session   SessionType // FN or AN
+  time      String      // e.g. "09:00 - 12:00"
+
+  maxMarks  Float
+  minMarks  Float?
+
+  examMarks ExamMark[]
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([examId, subjectId]) // One subject per exam
+}
+
+enum SessionType {
+  FN  // Forenoon
+  AN  // Afternoon
+}
+
+model ExamMark {
+  id           Int        @id @default(autoincrement())
+  examEntryId  Int
+  studentId    Int
+  subjectId    Int
+  marks        Int
+  
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  examEntry    ExamEntry  @relation(fields: [examEntryId], references: [id])
+  student      User       @relation(fields: [studentId], references: [id])
+  subject      Subject    @relation(fields: [subjectId], references: [id])
+
+@@unique([examEntryId, studentId, subjectId])
+
+}
+
+//////////////////////
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HOLIDAY
+}
+
+
+model MarkAttendance {
+  id        Int       @id @default(autoincrement())
+  date      DateTime  // Date of attendance
+  note      String?   // Optional description or reason
+  groupId   Int
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  statuses  MarkAttendanceStatus[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([date, groupId]) // One attendance per group per day
+}
+
+model MarkAttendanceStatus {
+  id               Int              @id @default(autoincrement())
+  attendanceId     Int
+  attendance       MarkAttendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  userId           Int
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           AttendanceStatus
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([attendanceId, userId]) // One entry per user per attendance session
+}
+
+
+
+
+
+
+
+
+
+
