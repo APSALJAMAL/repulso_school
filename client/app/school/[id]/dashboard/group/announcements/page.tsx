@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Pencil, Trash } from "lucide-react";
 interface AnnouncementBoard {
   id: number;
   groupId: number;
@@ -88,7 +89,7 @@ export default function AnnouncementsPage() {
       </div>
 
       {/* Boards list */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {boards.map((board) => (
           <Card key={board.id} className="hover:shadow-lg transition">
             <CardContent className="p-4 space-y-2">
@@ -136,14 +137,14 @@ export default function AnnouncementsPage() {
                       setEditingGroupId(String(board.groupId));
                     }}
                   >
-                    Edit
+                    <Pencil />
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDelete(board.id)}
                   >
-                    Delete
+                    <Trash />
                   </Button>
                 </div>
               )}

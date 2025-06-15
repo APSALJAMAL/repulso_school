@@ -6,10 +6,16 @@ import Navbar from "@/components/shared/Navbar";
 import QRCodeBox from "./QRCodeBox";
 import logo from "@/app/favicon.ico";
 import MarkRadarChart from "./RadarChart";
-import PieChartExample from "./PieChart";
 
-import { Pen } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import MarkRadarForExam from "./MarkRadarForExam";
+import UserAttendancePieChart from "./PieChart";
+
+type Exam = {
+  id: number;
+  name: string;
+  batch: string | null;
+  groupId: number;
+};
 
 // ✅ Fetch user by ID
 async function getUserById(schoolId: string, userId: string) {
@@ -21,6 +27,16 @@ async function getUserById(schoolId: string, userId: string) {
   return await res.json();
 }
 
+// ✅ Fetch exams by user ID
+async function getExamsByUserId(userId: string) {
+  const res = await fetch(`http://localhost:5555/api/exams/user/${userId}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.exams as Exam[];
+}
+
 interface ProfilePageProps {
   params: { id: string; userId: string };
 }
@@ -28,18 +44,16 @@ interface ProfilePageProps {
 export default async function Profile({ params }: ProfilePageProps) {
   const { id: schoolId, userId } = params;
 
-  const [user, school] = await Promise.all([
+  const [user, school, exams] = await Promise.all([
     getUserById(schoolId, userId),
     getSchool(schoolId),
+    getExamsByUserId(userId),
   ]);
 
   const today = format(new Date(), "EEE d MMMM yyyy");
 
   if (!user) return <div>User not found</div>;
   if (!school) return <div>School not found</div>;
-
-  // Assuming current logged-in user is same as `user` in this context
-  const isOwner = user.id === userId;
 
   return (
     <>
@@ -62,18 +76,6 @@ export default async function Profile({ params }: ProfilePageProps) {
                 <AvatarImage src={user.avatarUrl ?? ""} alt={user.fullName} />
                 <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
               </Avatar>
-              {isOwner && (
-                <Button
-                  onClick={() =>
-                    window.location.assign(
-                      `/school/${schoolId}/profile/${user.id}/details`,
-                    )
-                  }
-                  className="bg-primary absolute -right-2 -bottom-2 h-8 w-8 rounded-full p-2 hover:bg-blue-700"
-                >
-                  <Pen className="h-4 w-4 text-white" />
-                </Button>
-              )}
             </div>
             <div>
               <h1 className="text-3xl font-semibold">Hi, {user.fullName} 👋</h1>
@@ -87,11 +89,28 @@ export default async function Profile({ params }: ProfilePageProps) {
           </div>
         </div>
 
-        {/* Radar Chart */}
+        {/* ✅ Subject-Wise Radar Chart */}
         <MarkRadarChart user={user} />
 
-        {/* Pie Chart */}
-        <PieChartExample />
+        {/* ✅ Exam-Wise Radar Chart for each exam */}
+        <div className="mt-12 space-y-10">
+          {exams.length === 0 ? (
+            <div className="text-center text-gray-500">
+              No exams found for this user.
+            </div>
+          ) : (
+            <div className="mt-12 space-y-10">
+              {exams.map((exam) => (
+                <MarkRadarForExam key={exam.id} user={user} examId={""} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Pie Chart (unchanged) */}
+        <div className="mt-12">
+          <UserAttendancePieChart userId={3} attendanceId={2} />
+        </div>
       </div>
     </>
   );

@@ -10,6 +10,7 @@ import announcement from "./routes/announcements";
 import examRoutes from "./routes/exam.routes";
 import examMarkRoutes from "./routes/examMarkRoutes";
 import markattendance from "./routes/attendanceRoutes";
+import customFieldRoutes from "./routes/customField.routes";
 const port = process.env.PORT || 5555;
 
 const app = express();
@@ -44,3 +45,5 @@ app.use("/api/announcements", announcement);
 app.use("/api/exams", examRoutes);
 app.use("/api/exam-marks", examMarkRoutes);
 app.use("/api/markattendance", markattendance);
+app.use("/api", customFieldRoutes);
+

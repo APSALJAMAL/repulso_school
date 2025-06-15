@@ -3,7 +3,16 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { usePathname } from "next/navigation";
-import { Home, Settings, LibraryBig, Users, Fingerprint } from "lucide-react";
+import {
+  Home,
+  Settings,
+  LibraryBig,
+  Users,
+  Podcast,
+  BookCheck,
+  DatabaseZap,
+  TicketCheck,
+} from "lucide-react";
 
 import { SchoolSwitcher } from "@/components/features/dashboard/SchoolSwitcher";
 import { NavUser } from "@/components/features/dashboard/NavUser";
@@ -29,13 +38,19 @@ const tabs = [
   },
   { title: "Subjects", url: "dashboard/subjects", icon: LibraryBig },
   { title: "Groups", url: "dashboard/group", icon: Users },
-  { title: "Attendance", url: "dashboard/attendance", icon: Fingerprint },
+  // { title: "Attendance", url: "dashboard/attendance", icon: Fingerprint },
   {
     title: "Announcement",
     url: "dashboard/group/announcements",
-    icon: Fingerprint,
+    icon: Podcast,
   },
-  { title: "Exam", url: "dashboard/exams", icon: Fingerprint },
+  { title: "Exam", url: "dashboard/exams", icon: BookCheck },
+  { title: "Field", url: "dashboard/custom-fields", icon: TicketCheck },
+  {
+    title: "Database",
+    url: "dashboard/custom-fields/database",
+    icon: DatabaseZap,
+  },
   { title: "Settings", url: "dashboard/settings", icon: Settings },
 ];
 
@@ -51,7 +66,7 @@ export function AppSidebar({ activeSchoolId }: Props) {
       <SidebarHeader>
         <SchoolSwitcher activeSchoolId={activeSchoolId} />
       </SidebarHeader>
-      <SidebarContent className="justify-between">
+      <SidebarContent className="justify-between  ">
         <SidebarGroup>
           <SidebarMenu>
             {tabs.map((tab) => {
@@ -80,7 +95,7 @@ export function AppSidebar({ activeSchoolId }: Props) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <NavUser />
+        <NavUser SchoolId={activeSchoolId} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

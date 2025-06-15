@@ -1,54 +1,75 @@
 import { Request, Response } from "express";
-import db from "../lib/db"; // assuming this is your Prisma instance
+import db from "../lib/db";
 
 // Create attendance
 export const createAttendance = async (req: Request, res: Response) => {
   try {
-    const { date, note, groupId } = req.body;
+    const { title, note, groupId } = req.body;
+
     const attendance = await db.markAttendance.create({
       data: {
-        date: new Date(date),
+        title,
         note,
         groupId,
       },
     });
+
     return res.status(201).json(attendance);
   } catch (err) {
-    return res.status(400).json({ error: "Attendance already exists or invalid data." });
+    return res
+      .status(400)
+      .json({ error: "Attendance already exists or invalid data." });
   }
 };
 
-// Get attendance for group and date
+// Get attendance by groupId and title
+// controllers/attendanceController.ts
+
 export const getAttendance = async (req: Request, res: Response) => {
   const { groupId } = req.params;
-  const { date } = req.query;
+  const { title } = req.query;
 
   try {
-    const attendance = await db.markAttendance.findFirst({
-      where: {
-        groupId: parseInt(groupId),
-        date: new Date(date as string),
+    const filters: any = {
+      groupId: parseInt(groupId),
+    };
+
+    if (title) {
+      filters.title = title;
+    }
+
+    const attendances = await db.markAttendance.findMany({
+      where: filters,
+      select: {
+        id: true,
+        title: true,
+        note: true,
+        createdAt: true,
       },
-      include: { statuses: true },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    if (!attendance) return res.status(404).json({ error: "Attendance not found" });
-    return res.json(attendance);
+    return res.json(attendances); // ✅ Return array
   } catch (err) {
+    console.error(err);
     return res.status(500).json({ error: "Server error" });
   }
 };
 
-// Update attendance
+
+// Update attendance note or title
 export const updateAttendance = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { note } = req.body;
+  const { note, title } = req.body;
 
   try {
     const updated = await db.markAttendance.update({
       where: { id: parseInt(id) },
-      data: { note },
+      data: { note, title },
     });
+
     return res.json(updated);
   } catch (err) {
     return res.status(400).json({ error: "Could not update attendance" });
@@ -66,42 +87,38 @@ export const deleteAttendance = async (req: Request, res: Response) => {
   }
 };
 
-// Mark a user's attendance
+// Mark or update a user's attendance
 export const markStatus = async (req: Request, res: Response) => {
   const { attendanceId } = req.params;
-  const { userId, status } = req.body;
+  const { userId, status, date } = req.body;
 
   try {
-    const existing = await db.markAttendanceStatus.findFirst({
+    const result = await db.markAttendanceStatus.upsert({
       where: {
+        attendanceId_userId_date: {
+          attendanceId: parseInt(attendanceId),
+          userId,
+          date: new Date(date),
+        },
+      },
+      update: {
+        status,
+      },
+      create: {
         attendanceId: parseInt(attendanceId),
         userId,
+        status,
+        date: new Date(date),
       },
     });
 
-    const result = existing
-      ? await db.markAttendanceStatus.update({
-          where: {
-            attendanceId_userId: {
-              attendanceId: parseInt(attendanceId),
-              userId,
-            },
-          },
-          data: { status },
-        })
-      : await db.markAttendanceStatus.create({
-          data: {
-            attendanceId: parseInt(attendanceId),
-            userId,
-            status,
-          },
-        });
-
     return res.json(result);
   } catch (err) {
+    console.error(err);
     return res.status(400).json({ error: "Marking failed" });
   }
 };
+
 
 // Get all statuses for a session
 export const getStatuses = async (req: Request, res: Response) => {

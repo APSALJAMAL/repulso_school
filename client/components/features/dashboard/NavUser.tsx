@@ -1,12 +1,11 @@
 "use client";
 
-import { ChevronsUpDown, LogOut, Settings } from "lucide-react";
+import { ChevronsUpDown, CircleUserRound, LogOut } from "lucide-react";
 import { deleteCookie } from "cookies-next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -24,14 +23,23 @@ import { UserType } from "@/types/User";
 import { getInitials } from "@/lib/utils";
 import { getUser } from "@/fetches/user";
 import { Skeleton } from "@/components/ui/skeleton";
-
-export function NavUser() {
+type NavUserProps = {
+  SchoolId: string;
+};
+export function NavUser({ SchoolId }: NavUserProps) {
   const { data: user, isLoading } = useQuery<UserType>({
     queryKey: ["user"],
     queryFn: getUser,
   });
   const router = useRouter();
   const { isMobile } = useSidebar();
+  const handleProfileClick = () => {
+    if (user && SchoolId) {
+      router.push(`/school/${SchoolId}/profile/${user.id}/details`);
+    } else {
+      console.error("User ID or School ID missing.");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -97,12 +105,11 @@ export function NavUser() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Settings />
-                Profile settings
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+
+            <DropdownMenuItem onClick={handleProfileClick}>
+              <CircleUserRound className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {

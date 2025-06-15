@@ -176,3 +176,68 @@ export const deleteExam = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to delete exam", details: error });
   }
 };
+
+
+export const getExamsByUserId =  async (req: Request, res: Response) => {
+  const userId = Number(req.params.userId);
+  if (!userId) return res.status(400).json({ message: "Invalid user ID" });
+
+  try {
+    // Find all exam marks for this user, including all necessary relations
+    const examMarks = await prisma.examMark.findMany({
+      where: { studentId: userId },
+      include: {
+        subject: true,
+        student: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+        examEntry: {
+          include: {
+            exam: {
+              select: {
+                id: true,
+                name: true,
+                batch: true,
+                groupId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Organize marks by exam
+    const examMap: Record<number, any> = {};
+
+    examMarks.forEach((mark) => {
+      const examId = mark.examEntry.exam.id;
+      if (!examMap[examId]) {
+        examMap[examId] = {
+          id: examId,
+          name: mark.examEntry.exam.name,
+          batch: mark.examEntry.exam.batch,
+          groupId: mark.examEntry.exam.groupId,
+          maxMarks: 0, // not needed if per-subject
+          minMarks: 0,
+          data: [],
+        };
+      }
+
+      examMap[examId].data.push(mark);
+    });
+
+    const exams = Object.values(examMap);
+
+    res.json({
+      exams,
+      data: examMarks, // optional if frontend expects this flat
+    });
+  } catch (error) {
+    console.error("Error fetching user exam marks:", error);
+    res.status(500).json({ message: "Server error fetching exam marks" });
+  }
+};

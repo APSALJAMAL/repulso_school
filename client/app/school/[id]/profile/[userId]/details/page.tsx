@@ -1,27 +1,15 @@
-// No "use client" here
+"use client";
+import { use } from "react";
+import Portfolio from "./Portfolio";
 
-import CreateProfileClient from "./createdetails";
+export default function DetailsPage({
+  params,
+}: {
+  params: Promise<{ id: string; userId: string }>;
+}) {
+  const resolvedParams = use(params);
+  const schoolId = resolvedParams.id;
+  const userId = resolvedParams.userId;
 
-
-interface PageProps {
-    params: {
-      id: string;
-      userId: string;
-    };
-  }
-
-export default async function CreateProfile({ params }: PageProps) {
-    const resolvedParams = await params;  // await here
-    const userId = Number(resolvedParams.userId);
-
-  // You can fetch user/school data here if needed
-  // const user = await getUser(...)
-  // const school = await getSchool(...)
-
-  return (
-    <main className="p-4">
-      <h1 className="text-xl font-bold mb-4">Create Profile</h1>
-      <CreateProfileClient  schoolId={params.id} userId={userId} />
-    </main>
-  );
+  return <Portfolio schoolId={schoolId} userId={userId} />;
 }

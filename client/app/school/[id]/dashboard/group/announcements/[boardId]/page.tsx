@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -110,7 +111,7 @@ export default function BoardPage() {
                 </>
               ) : (
                 <>
-                  <p>{msg.content}</p>
+                  <p className="whitespace-pre-line">{msg.content}</p>
                   <small className="text-xs text-gray-500">
                     by {msg.createdBy?.name ?? "Unknown"} on{" "}
                     {new Date(msg.createdAt).toLocaleString()}

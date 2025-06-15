@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -14,6 +15,8 @@ import {
 
 interface Props {
   examId: number;
+  schoolId: string;
+  groupId: string;
 }
 
 interface Student {
@@ -22,114 +25,191 @@ interface Student {
   email: string;
 }
 
-interface Subject {
-  id: number;
-  name: string;
-}
-
 interface ExamMark {
   id: number;
   marks: number;
   student: Student;
-  subject: Subject;
+  subjectId: number;
+  subject: { id: number; name: string };
+}
+
+interface ExamEntry {
+  subjectId: number;
+  subject: { id: number; name: string };
+  maxMarks: number;
+  minMarks: number;
 }
 
 interface StudentRow {
   student: Student;
-  marks: { [subjectName: string]: number };
+  marks: { [subjectId: number]: number };
   total: number;
+  hasFailed: boolean;
+  rank: number | null;
 }
 
-const ExamMarksTable: React.FC<Props> = ({ examId }) => {
-  const [studentRows, setStudentRows] = useState<StudentRow[]>([]);
-  const [subjects, setSubjects] = useState<string[]>([]);
+export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [studentRows, setStudentRows] = useState<StudentRow[]>([]);
+  const [entries, setEntries] = useState<ExamEntry[]>([]);
+  const [totalMax, setTotalMax] = useState(0);
+  const [totalMin, setTotalMin] = useState(0);
+
   useEffect(() => {
-    const fetchMarks = async () => {
+    async function load() {
+      setLoading(true);
       try {
-        setLoading(true);
-        const res = await axios.get(
-          `http://localhost:5555/api/exam-marks/${examId}`,
-        );
-        const marks: ExamMark[] = res.data.data;
+        const [groupRes, marksRes, entriesRes] = await Promise.all([
+          axios.get(
+            `http://localhost:5555/api/school/${schoolId}/group/${groupId}/member`,
+          ),
+          axios.get(`http://localhost:5555/api/exam-marks/${examId}`),
+          axios.get(`http://localhost:5555/api/exams/${examId}`),
+        ]);
 
-        // 1. Extract unique subjects
-        const subjectSet = new Set(marks.map((m) => m.subject.name));
-        const allSubjects = Array.from(subjectSet);
+        const members: Student[] = Array.isArray(groupRes.data)
+          ? groupRes.data
+          : (groupRes.data.members ?? []);
 
-        // 2. Group by student
+        const marks: ExamMark[] = marksRes.data.data ?? [];
+        const examEntries: ExamEntry[] = entriesRes.data.entries ?? [];
+
+        setEntries(examEntries);
+        setTotalMax(examEntries.reduce((sum, e) => sum + e.maxMarks, 0));
+        setTotalMin(examEntries.reduce((sum, e) => sum + (e.minMarks ?? 0), 0));
+
+        const memberIds = new Set(members.map((m) => m.id));
+        const filteredMarks = marks.filter((m) => memberIds.has(m.student.id));
+
         const studentMap = new Map<number, StudentRow>();
-
-        marks.forEach((mark) => {
-          const studentId = mark.student.id;
-          if (!studentMap.has(studentId)) {
-            studentMap.set(studentId, {
-              student: mark.student,
+        filteredMarks.forEach((m) => {
+          const sid = m.student.id;
+          if (!studentMap.has(sid)) {
+            studentMap.set(sid, {
+              student: m.student,
               marks: {},
               total: 0,
+              hasFailed: false,
+              rank: null,
             });
           }
-          const studentRow = studentMap.get(studentId)!;
-          studentRow.marks[mark.subject.name] = mark.marks;
-          studentRow.total += mark.marks;
+          const row = studentMap.get(sid)!;
+          row.marks[m.subjectId] = m.marks;
         });
 
-        // 3. Convert to array and sort by total to calculate rank
-        const sortedStudents = Array.from(studentMap.values()).sort(
-          (a, b) => b.total - a.total,
-        );
+        const rows = Array.from(studentMap.values()).map((row) => {
+          let total = 0;
+          let hasFailed = false;
 
-        setSubjects(allSubjects);
-        setStudentRows(sortedStudents);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load marks");
+          for (const e of examEntries) {
+            const mark = row.marks[e.subjectId];
+            if (typeof mark === "number") {
+              total += mark;
+              if (mark < e.minMarks) {
+                hasFailed = true;
+              }
+            } else {
+              hasFailed = true;
+            }
+          }
+
+          return { ...row, total, hasFailed };
+        });
+
+        // const passed = rows
+        //   .filter((r) => !r.hasFailed)
+        //   .sort((a, b) => b.total - a.total);
+
+        let rank = 1;
+        let lastTotal: number | null = null;
+        let lastRank = 1;
+
+        const ranked = rows.map((row) => {
+          if (row.hasFailed) return { ...row, rank: null };
+
+          const sameTotal = row.total === lastTotal;
+          const assignedRank = sameTotal ? lastRank : rank;
+
+          lastTotal = row.total;
+          lastRank = assignedRank;
+          rank++;
+
+          return { ...row, rank: assignedRank };
+        });
+
+        setStudentRows(ranked);
+      } catch (e: any) {
+        console.error(e);
+        setError(e.response?.data?.message || "Failed to load data");
       } finally {
         setLoading(false);
       }
-    };
+    }
 
-    fetchMarks();
-  }, [examId]);
+    load();
+  }, [examId, schoolId, groupId]);
 
-  if (loading) return <p className="text-center">Loading...</p>;
-  if (error) return <p className="text-red-500 text-center">{error}</p>;
+  if (loading) return <p className="py-10 text-center">Loading...</p>;
+  if (error) return <p className="py-10 text-center text-red-500">{error}</p>;
 
   return (
-    <div className="p-4">
+    <div className="p-4 overflow-auto">
       <Table>
-        <TableCaption>Exam results with total & rank</TableCaption>
+        <TableCaption>Exam results </TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Student</TableHead>
             <TableHead>Email</TableHead>
-            {subjects.map((sub) => (
-              <TableHead key={sub}>{sub}</TableHead>
+            {entries.map((e) => (
+              <TableHead key={e.subjectId}>
+                {e.subject.name}
+                <div className="text-xs text-muted-foreground">
+                  (Max: {e.maxMarks}) (Min: {e.minMarks})
+                </div>
+              </TableHead>
             ))}
-            <TableHead>Total</TableHead>
+            <TableHead>
+              Total
+              <div className="text-xs text-muted-foreground">
+                (Max: {totalMax})<br />
+                (Min: {totalMin})
+              </div>
+            </TableHead>
             <TableHead>Rank</TableHead>
           </TableRow>
         </TableHeader>
+
         <TableBody>
-          {studentRows.map((row, index) => (
+          {studentRows.map((row) => (
             <TableRow key={row.student.id}>
               <TableCell>{row.student.fullName}</TableCell>
               <TableCell>{row.student.email}</TableCell>
-              {subjects.map((sub) => (
-                <TableCell key={sub}>
-                  {row.marks[sub] !== undefined ? row.marks[sub] : "-"}
-                </TableCell>
-              ))}
-              <TableCell className="font-semibold">{row.total}</TableCell>
-              <TableCell className="font-bold">{index + 1}</TableCell>
+              {entries.map((e) => {
+                const m = row.marks[e.subjectId];
+                const isLow = typeof m === "number" && m < e.minMarks;
+                return (
+                  <TableCell
+                    key={e.subjectId}
+                    className={isLow ? "text-red-500 font-semibold" : ""}
+                  >
+                    {typeof m === "number" ? m : "-"}
+                  </TableCell>
+                );
+              })}
+              <TableCell
+                className={
+                  row.hasFailed ? "text-red-500 font-semibold" : "font-semibold"
+                }
+              >
+                {row.total}
+              </TableCell>
+              <TableCell className="font-bold">{row.rank ?? "-"}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
   );
-};
-
-export default ExamMarksTable;
+}

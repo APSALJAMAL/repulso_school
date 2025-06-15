@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
 import axios from "@/lib/axiosInstance";
 import { getCookie } from "cookies-next";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardTitle, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -13,7 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 interface Student {
   id: number;
@@ -21,18 +21,31 @@ interface Student {
   email: string;
 }
 
-interface Subject {
-  id: number;
-  name: string;
+interface SubjectEntry {
+  subjectId: number;
+  subject: { id: number; name: string };
+  maxMarks: number;
+  minMarks: number;
 }
 
 interface MarkEntry {
-  [subjectId: number]: number;
+  [subjectId: number]: number | string; // Now includes string for editable state
 }
 
 interface StudentMarks {
   studentId: number;
   marks: MarkEntry;
+}
+interface Exam {
+  id: number;
+  name: string;
+  date: string;
+  session: string;
+  time: string;
+  batch: string | null;
+  group: {
+    name: string;
+  };
 }
 
 interface Props {
@@ -41,17 +54,25 @@ interface Props {
   groupId: string;
 }
 
+const debounce = (fn: (...args: any[]) => void, delay: number) => {
+  let timer: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+};
+
 export default function ExamMarksPageClient({
   examId,
   schoolId,
   groupId,
 }: Props) {
   const [students, setStudents] = useState<Student[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState<SubjectEntry[]>([]);
   const [marks, setMarks] = useState<StudentMarks[]>([]);
-  const [savingId, setSavingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [exam, setExam] = useState<Exam | null>(null);
 
   const getAuthHeaders = () => {
     const token = getCookie("token");
@@ -62,30 +83,47 @@ export default function ExamMarksPageClient({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [memberRes, subjectRes] = await Promise.all([
+
+        const [memberRes, examRes, marksRes] = await Promise.all([
           axios.get(`/school/${schoolId}/group/${groupId}/member`, {
             headers: getAuthHeaders(),
           }),
-          axios.get(`/school/${schoolId}/subject`, {
+          axios.get(`/exams/${examId}`, {
+            headers: getAuthHeaders(),
+          }),
+          axios.get(`/exam-marks/${examId}`, {
             headers: getAuthHeaders(),
           }),
         ]);
 
         const members: Student[] = Array.isArray(memberRes.data)
           ? memberRes.data
-          : (memberRes.data.members ?? []);
+          : (memberRes.data?.members ?? []);
 
-        const subjectList: Subject[] = Array.isArray(subjectRes.data)
-          ? subjectRes.data
-          : (subjectRes.data.subjects ?? []);
+        const subjectList: SubjectEntry[] = examRes.data?.entries ?? [];
+        setExam(examRes.data || null);
 
-        const initialMarks: StudentMarks[] = members.map((student) => ({
-          studentId: student.id,
-          marks: subjectList.reduce((acc, subject) => {
-            acc[subject.id] = 0;
+        const existingMarks = Array.isArray(marksRes.data)
+          ? marksRes.data
+          : Array.isArray(marksRes.data?.data)
+            ? marksRes.data.data
+            : [];
+
+        const initialMarks: StudentMarks[] = members.map((student) => {
+          const studentMarks = existingMarks.filter(
+            (m: any) => m.studentId === student.id,
+          );
+
+          const marksMap = subjectList.reduce((acc, subject) => {
+            const entry = studentMarks.find(
+              (m: any) => m.subjectId === subject.subjectId,
+            );
+            acc[subject.subjectId] = entry?.marks?.toString() ?? "";
             return acc;
-          }, {} as MarkEntry),
-        }));
+          }, {} as MarkEntry);
+
+          return { studentId: student.id, marks: marksMap };
+        });
 
         setStudents(members);
         setSubjects(subjectList);
@@ -101,14 +139,42 @@ export default function ExamMarksPageClient({
     };
 
     fetchData();
-  }, [schoolId, groupId]);
+  }, [schoolId, groupId, examId]);
+
+  const saveMark = async (
+    studentId: number,
+    subjectId: number,
+    mark: number,
+  ) => {
+    try {
+      await axios.post(
+        "/exam-marks",
+        {
+          examEntryId: parseInt(examId),
+          studentId,
+          subjectId,
+          marks: mark,
+        },
+        {
+          headers: getAuthHeaders(),
+        },
+      );
+      console.log(
+        `✅ Auto-saved mark for student ${studentId}, subject ${subjectId}`,
+      );
+    } catch (err) {
+      console.error("❌ Auto-save failed:", err);
+    }
+  };
+
+  const debounceSaveMark = debounce(saveMark, 500);
 
   const handleMarkChange = (
     studentId: number,
     subjectId: number,
     value: string,
   ) => {
-    const parsed = parseFloat(value);
+    // Always update the raw string
     setMarks((prev) =>
       prev.map((entry) =>
         entry.studentId === studentId
@@ -116,42 +182,21 @@ export default function ExamMarksPageClient({
               ...entry,
               marks: {
                 ...entry.marks,
-                [subjectId]: isNaN(parsed) ? 0 : parsed,
+                [subjectId]: value,
               },
             }
           : entry,
       ),
     );
-  };
 
-  const handleSave = async (studentId: number) => {
-    const studentMarks = marks.find((m) => m.studentId === studentId);
-    if (!studentMarks) return;
+    // Save only if value is valid
+    const parsed = parseFloat(value);
+    if (!isNaN(parsed)) {
+      const subject = subjects.find((s) => s.subjectId === subjectId);
+      if (!subject) return;
 
-    setSavingId(studentId);
-    try {
-      await Promise.all(
-        Object.entries(studentMarks.marks).map(([subjectId, mark]) =>
-          axios.post(
-            "/exam-marks",
-            {
-              examEntryId: parseInt(examId),
-              studentId,
-              subjectId: parseInt(subjectId),
-              marks: mark,
-            },
-            {
-              headers: getAuthHeaders(),
-            },
-          ),
-        ),
-      );
-      alert("✅ Marks saved successfully.");
-    } catch (err) {
-      console.error("❌ Save failed:", err);
-      alert("❌ Failed to save marks.");
-    } finally {
-      setSavingId(null);
+      const mark = Math.min(parsed, subject.maxMarks);
+      debounceSaveMark(studentId, subjectId, mark);
     }
   };
 
@@ -165,66 +210,100 @@ export default function ExamMarksPageClient({
 
   return (
     <Card className="max-w-7xl mx-auto p-4">
-      <CardHeader>
+      <CardContent>
+        <div className="mb-4 space-y-1 text-sm text-gray-700">
+          <div>
+            <strong>Group ID:</strong> {groupId}
+          </div>
+          <div>
+            <strong>Group Name:</strong> {exam?.group.name || "Loading..."}
+          </div>
+          <div>
+            <strong>Exam ID:</strong> {examId}
+          </div>
+          <div>
+            <strong>Exam Name:</strong> {exam?.name || "Loading..."}
+          </div>
+        </div>
+      </CardContent>
+      <CardContent>
         <CardTitle className="text-2xl">Enter Exam Marks</CardTitle>
-      </CardHeader>
+      </CardContent>
       <CardContent>
         {subjects.length === 0 ? (
           <p className="text-gray-500">No subjects found.</p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Email</TableHead>
-                {subjects.map((subject) => (
-                  <TableHead key={subject.id}>{subject.name}</TableHead>
-                ))}
-                <TableHead className="text-center">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {students.map((student) => {
-                const studentMarkEntry = marks.find(
-                  (m) => m.studentId === student.id,
-                );
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Email</TableHead>
+                  {subjects.map((subject) => (
+                    <TableHead key={subject.subjectId}>
+                      <div className="flex flex-col">
+                        <span>{subject.subject.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Max: {subject.maxMarks} | Min: {subject.minMarks}
+                        </span>
+                      </div>
+                    </TableHead>
+                  ))}
+                  <TableHead>
+                    <div className="flex flex-col">
+                      <span>Total</span>
+                      <span className="text-xs text-muted-foreground">
+                        Max: {subjects.reduce((acc, s) => acc + s.maxMarks, 0)}
+                      </span>
+                    </div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {students.map((student) => {
+                  const studentMarkEntry = marks.find(
+                    (m) => m.studentId === student.id,
+                  );
 
-                return (
-                  <TableRow key={student.id}>
-                    <TableCell>{student.fullName}</TableCell>
-                    <TableCell>{student.email}</TableCell>
-                    {subjects.map((subject) => (
-                      <TableCell key={subject.id}>
-                        <Input
-                          type="number"
-                          className="w-20"
-                          value={
-                            studentMarkEntry?.marks[subject.id]?.toString() ??
-                            ""
-                          }
-                          onChange={(e) =>
-                            handleMarkChange(
-                              student.id,
-                              subject.id,
-                              e.target.value,
-                            )
-                          }
-                        />
-                      </TableCell>
-                    ))}
-                    <TableCell className="text-center">
-                      <Button
-                        onClick={() => handleSave(student.id)}
-                        disabled={savingId === student.id}
-                      >
-                        {savingId === student.id ? "Saving..." : "Save"}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                  const total = subjects.reduce((sum, subject) => {
+                    const val = studentMarkEntry?.marks[subject.subjectId];
+                    const num = typeof val === "string" ? parseFloat(val) : val;
+                    return (
+                      sum + (typeof num === "number" && !isNaN(num) ? num : 0)
+                    );
+                  }, 0);
+
+                  return (
+                    <TableRow key={student.id}>
+                      <TableCell>{student.fullName}</TableCell>
+                      <TableCell>{student.email}</TableCell>
+                      {subjects.map((subject) => (
+                        <TableCell key={subject.subjectId}>
+                          <Input
+                            type="number"
+                            className="w-20"
+                            min={0}
+                            max={subject.maxMarks}
+                            value={
+                              studentMarkEntry?.marks[subject.subjectId] ?? ""
+                            }
+                            onChange={(e) =>
+                              handleMarkChange(
+                                student.id,
+                                subject.subjectId,
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </TableCell>
+                      ))}
+                      <TableCell className="font-semibold">{total}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </>
         )}
       </CardContent>
     </Card>

@@ -1,4 +1,10 @@
-import { Users, GraduationCap, LibraryBig, ShieldCheck } from "lucide-react";
+import {
+  Users,
+  GraduationCap,
+  LibraryBig,
+  ShieldCheck,
+  Shield,
+} from "lucide-react";
 import { getSchool } from "@/fetches/school";
 import { formatNumber } from "@/lib/utils";
 
@@ -23,7 +29,7 @@ export default async function Stats({ schoolId }: Props) {
     {
       title: "Total Super Admins",
       count: school._count.superadmins,
-      icon: ShieldCheck,
+      icon: Shield,
     },
     {
       title: "Total Subjects",

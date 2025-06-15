@@ -73,6 +73,7 @@ export function SchoolSwitcher({ activeSchoolId }: Props) {
                   <AvatarImage
                     alt={activeSchool.school.name}
                     src={activeSchool.school.logoUrl}
+                    className="w-full h-full object-center object-cover"
                   />
                 </Avatar>
 
@@ -107,7 +108,11 @@ export function SchoolSwitcher({ activeSchoolId }: Props) {
                 <DropdownMenuItem key={school.name} className="gap-2 p-2">
                   <Avatar className="size-8">
                     <AvatarFallback>{getInitials(school.name)}</AvatarFallback>
-                    <AvatarImage alt={school.name} src={school.logoUrl} />
+                    <AvatarImage
+                      alt={school.name}
+                      src={school.logoUrl}
+                      className="w-full h-full object-center object-cover"
+                    />
                   </Avatar>
                   {school.name}
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>

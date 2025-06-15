@@ -63,6 +63,9 @@ import {
   getAllMarks,
   getUserById,
   getTeachersInSchool,
+  getAllSchoolMembers,
+  getGroupsByUserId,
+  
 } from "../controllers/schoolController";
 import { protect } from "../middleware/authMiddleware";
 import { admin } from "../middleware/adminMiddleware";
@@ -76,6 +79,8 @@ router.get("/school/:id", protect, access, getSchool);
 router.put("/school/:id", protect, admin, editSchool);
 router.delete("/school/:id", protect, access, deleteSchool);
 router.delete("/school/:id/member", protect, admin, removeFromSchool);
+
+
 router.post("/school/:id/invite", protect, admin, inviteUser);
 router.post("/invite/:inviteToken", protect, acceptInvitation);
 router.get("/school/:id/invitation", protect, admin, getInvitationTokens);
@@ -97,6 +102,7 @@ router.delete(
 );
 
 router.get("/school/:id/member", protect, admin, getMembers);
+router.get("/school/:id/allschoolmember", protect, admin, getAllSchoolMembers);
 
 router.post("/school/:id/group", protect, admin, createGroup);
 router.get("/school/:id/group",  getGroups);
@@ -264,6 +270,7 @@ router.get('/school/:schoolId/users/:userId', async (req, res) => {
 });
 
 router.get("/school/:schoolId/teachers", getTeachersInSchool);
+router.get("/user/:userId/groups", getGroupsByUserId);
 
 
 export default router;

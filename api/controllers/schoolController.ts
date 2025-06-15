@@ -2139,6 +2139,52 @@ export const getMembers = async (req: Request, res: Response) => {
     return res.status(500).send({ message: error.message });
   }
 };
+// get allmembers in school
+export const getAllSchoolMembers = async (req: Request, res: Response) => {
+  try {
+    const schoolId = req.params.id;
+
+    const members = await db.memberOnSchools.findMany({
+      where: {
+        schoolId, // don't filter by role or user
+      },
+      select: {
+        role: true, // from memberOnSchools
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+            groups: {
+              select: {
+                group: {
+                  select: {
+                    id: true,
+                    name: true,
+                    parentId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const formatted = members.map((member) => ({
+      ...member.user,
+      role: member.role,
+      groups: member.user.groups.map((g) => g.group),
+    }));
+
+    return res.status(200).json(formatted);
+  } catch (error: any) {
+    console.error("❌ Error fetching all members:", error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 
 // @desc    Get all groups
 // @route   GET /api/school/:id/group
@@ -2150,9 +2196,12 @@ export const getGroups = async (req: Request, res: Response) => {
         schoolId: req.params.id,
       },
       include: {
+        
         _count: {
           select: {
             members: true,
+            
+            
          
           },
         },
@@ -3721,3 +3770,46 @@ export const getTeachersInSchool = async (req: Request, res: Response) => {
   }
 };
 
+
+export const getGroupsByUserId = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+
+    const groups = await db.group.findMany({
+      where: {
+        members: {
+          some: {
+            userId,
+          },
+        },
+      },
+      include: {
+        school: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        members: {
+          select: {
+            userId: true,
+          },
+        },
+        _count: {
+          select: {
+            members: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json(groups);
+  } catch (error: any) {
+    console.error("Error fetching user groups:", error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};

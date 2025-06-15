@@ -1,6 +1,22 @@
-attendance
+attendance?
 exam?
 timetable
-profile
+profile?
 announcement ?
 social media
+
+
+home total group, rollnumber,logo,profile link
+subject DONE ?
+announcement toaster ,aurtorized
+
+
+/school/:id/dashboard - rollnumber , nof group
+/school/:id/dashboard/settings - DONE
+/school/:id/dashboard/subjects - DONE
+/school/:id/dashboard/group - DONE
+/school/:id/dashboard/group/announcements - DONE ,aurtorized,title font
+/school/:id/dashboard/exams - DONE ,title font
+/school/:id/dashboard/exams/:examid - DONE ,label
+/school/:id/dashboard/exams/:examid/marks - DONE , rollnumber,style
+

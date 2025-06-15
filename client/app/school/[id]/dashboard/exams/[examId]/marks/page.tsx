@@ -27,7 +27,11 @@ export default async function ExamMarksPage({
         schoolId={schoolId}
         groupId={groupId}
       />
-      <ExamMarksTable examId={Number(examId)} />
+      <ExamMarksTable
+        examId={Number(examId)}
+        schoolId={schoolId}
+        groupId={groupId}
+      />
     </div>
   );
 }

@@ -11,11 +11,11 @@ import {
 const router = express.Router();
 
 router.post("/", createAttendance);
-router.get("/:groupId", getAttendance);
+router.get("/:groupId", getAttendance); // expects ?title=something
 router.put("/:id", updateAttendance);
 router.delete("/:id", deleteAttendance);
 
-router.post("/:attendanceId/status", markStatus);
+router.post("/:attendanceId/status", markStatus); // expects { userId, status, date }
 router.get("/:attendanceId/statuses", getStatuses);
 
 export default router;

@@ -39,8 +39,8 @@ model User {
   announcementMessages  AnnouncementMessage[]  @relation("UserAnnouncementMessages")
   examMarks ExamMark[]
   markAttendanceStatuses MarkAttendanceStatus[]
-
-
+  customFields        UserCustomField[]     @relation("CreatorFields")
+  customFieldValues   UserCustomFieldValue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -480,7 +480,7 @@ model AnnouncementBoard {
 
 model AnnouncementMessage {
   id           Int       @id @default(autoincrement())
-  content      String
+  content      String  
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -561,12 +561,12 @@ enum AttendanceStatus {
   ABSENT
   LATE
   HOLIDAY
+  ON_DUTY
 }
-
 
 model MarkAttendance {
   id        Int       @id @default(autoincrement())
-  date      DateTime  // Date of attendance
+  title     String    // Title of the attendance session
   note      String?   // Optional description or reason
   groupId   Int
   group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -575,7 +575,7 @@ model MarkAttendance {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  @@unique([date, groupId]) // One attendance per group per day
+  @@unique([title, groupId]) // Ensures one attendance session with a title per group
 }
 
 model MarkAttendanceStatus {
@@ -585,12 +585,58 @@ model MarkAttendanceStatus {
   userId           Int
   user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   status           AttendanceStatus
+  date             DateTime         // Actual date of the user's attendance status
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+   @@unique([attendanceId, userId, date]) // ✅ Updated constraint
+}
+
+
+/////////////////////
+
+model UserCustomField {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation("CreatorFields", fields: [userId], references: [id], onDelete: Cascade)
+
+  label     String
+  key       String
+  type      FieldType
+  required  Boolean  @default(false)
+
+  values    UserCustomFieldValue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([attendanceId, userId]) // One entry per user per attendance session
+  @@unique([userId, key])
 }
+
+model UserCustomFieldValue {
+  id        Int      @id @default(autoincrement())
+  fieldId   Int
+  field     UserCustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([fieldId, userId])
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+}
+/////////////
+
 
 
 

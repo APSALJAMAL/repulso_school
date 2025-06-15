@@ -1,21 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
+import DatePicker from "react-datepicker";
 import {
   Select,
   SelectTrigger,
@@ -23,6 +15,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface Subject {
   id: number;
@@ -34,7 +27,7 @@ interface Entry {
   subjectId: number;
   subject: Subject;
   maxMarks: number;
-  minMarks?: number;
+  minMarks?: number | null;
   date: string;
   session: "FN" | "AN";
   time: string;
@@ -63,24 +56,18 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
   const [exam, setExam] = useState<Exam | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [form, setForm] = useState({
+  const initialForm = {
     subjectId: "",
     maxMarks: "",
     minMarks: "",
     date: new Date(),
     session: "FN" as "FN" | "AN",
     time: "",
-  });
+  };
 
+  const [form, setForm] = useState(initialForm);
   const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({
-    subjectId: "",
-    maxMarks: "",
-    minMarks: "",
-    date: new Date(),
-    session: "FN" as "FN" | "AN",
-    time: "",
-  });
+  const [editForm, setEditForm] = useState(initialForm);
 
   const fetchExam = async () => {
     try {
@@ -88,96 +75,104 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
       if (!res.ok) throw new Error("Failed to fetch exam");
       const data = await res.json();
       setExam(data);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       toast.error("Failed to load exam");
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleInputChange = (key: string, value: string | Date) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleEditInputChange = (key: string, value: string | Date) => {
+    setEditForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const validateForm = (data: typeof form) =>
+    data.subjectId && data.maxMarks && data.date && data.time;
+
   const createEntry = async () => {
-    if (!form.subjectId || !form.maxMarks || !form.date || !form.time) {
+    if (!validateForm(form)) {
       return toast.error("Please fill all required fields.");
     }
 
-    const res = await fetch("http://localhost:5555/api/exams/entry", {
-      method: "POST",
-      body: JSON.stringify({
-        examId: Number(examId),
-        subjectId: Number(form.subjectId),
-        maxMarks: parseFloat(form.maxMarks),
-        minMarks: form.minMarks ? parseFloat(form.minMarks) : null,
-        date: form.date.toISOString(),
-        session: form.session,
-        time: form.time,
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (res.ok) {
-      toast.success("Subject added to exam");
-      setForm({
-        subjectId: "",
-        maxMarks: "",
-        minMarks: "",
-        date: new Date(),
-        session: "FN",
-        time: "",
+    try {
+      const res = await fetch("http://localhost:5555/api/exams/entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          examId: Number(examId),
+          subjectId: Number(form.subjectId),
+          maxMarks: parseFloat(form.maxMarks),
+          minMarks: form.minMarks ? parseFloat(form.minMarks) : null,
+          date: form.date.toISOString(),
+          session: form.session,
+          time: form.time,
+        }),
       });
+
+      if (!res.ok) throw new Error();
+      toast.success("Subject added to exam");
+      setForm(initialForm);
       fetchExam();
-    } else {
+    } catch {
       toast.error("Error adding subject");
     }
   };
 
   const updateEntry = async (entryId: number) => {
-    if (
-      !editForm.subjectId ||
-      !editForm.maxMarks ||
-      !editForm.date ||
-      !editForm.time
-    ) {
+    if (!validateForm(editForm)) {
       return toast.error("Please fill all required fields.");
     }
 
-    const res = await fetch(
-      `http://localhost:5555/api/exams/entry/${entryId}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subjectId: Number(editForm.subjectId),
-          maxMarks: parseFloat(editForm.maxMarks),
-          minMarks: editForm.minMarks ? parseFloat(editForm.minMarks) : null,
-          date: editForm.date.toISOString(),
-          session: editForm.session,
-          time: editForm.time,
-        }),
-      },
-    );
+    try {
+      const res = await fetch(
+        `http://localhost:5555/api/exams/entry/${entryId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subjectId: Number(editForm.subjectId),
+            maxMarks: parseFloat(editForm.maxMarks),
+            minMarks: editForm.minMarks ? parseFloat(editForm.minMarks) : null,
+            date: editForm.date.toISOString(),
+            session: editForm.session,
+            time: editForm.time,
+          }),
+        },
+      );
 
-    if (res.ok) {
+      if (!res.ok) throw new Error();
       toast.success("Entry updated");
       setEditingEntryId(null);
       fetchExam();
-    } else {
+    } catch {
       toast.error("Failed to update entry");
     }
   };
 
   const deleteEntry = async (entryId: number) => {
-    const res = await fetch(
-      `http://localhost:5555/api/exams/entry/${entryId}`,
-      { method: "DELETE" },
-    );
-    if (res.ok) {
+    try {
+      const res = await fetch(
+        `http://localhost:5555/api/exams/entry/${entryId}`,
+        {
+          method: "DELETE",
+        },
+      );
+      if (!res.ok) throw new Error();
       toast.success("Entry deleted");
       fetchExam();
-    } else {
+    } catch {
       toast.error("Failed to delete entry");
     }
   };
 
   useEffect(() => {
-    fetchExam().finally(() => setLoading(false));
+    fetchExam();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading || !exam) {
@@ -190,261 +185,245 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto mt-10 space-y-8 px-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-bold flex justify-center items-center">
-            {exam.name}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p>
-            <strong>Batch:</strong> {exam.batch || "-"}
-          </p>
-          <p>
-            <strong>Group:</strong> {exam.group?.name}
-          </p>
-
-          <h3 className="text-lg font-semibold mb-2">Subjects</h3>
-          {exam.entries.length > 0 ? (
-            <ul className="space-y-4">
-              {exam.entries.map((entry) => (
-                <li key={entry.id} className="border p-4 rounded space-y-2">
-                  {editingEntryId === entry.id ? (
-                    <>
-                      <select
-                        value={editForm.subjectId}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            subjectId: e.target.value,
-                          }))
-                        }
-                        className="w-full border rounded px-3 py-2"
-                      >
-                        <option value="">Select Subject</option>
-                        {subjects.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-
-                      <Calendar
-                        mode="single"
-                        selected={editForm.date}
-                        onSelect={(date) =>
-                          date && setEditForm((f) => ({ ...f, date }))
-                        }
-                      />
-
-                      <Select
-                        value={editForm.session}
-                        onValueChange={(val) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            session: val as "FN" | "AN",
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select session" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="FN">FN</SelectItem>
-                          <SelectItem value="AN">AN</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <Input
-                        placeholder="Time"
-                        value={editForm.time}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            time: e.target.value,
-                          }))
-                        }
-                      />
-
-                      <Input
-                        placeholder="Max Marks"
-                        type="number"
-                        value={editForm.maxMarks}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            maxMarks: e.target.value,
-                          }))
-                        }
-                      />
-                      <Input
-                        placeholder="Min Marks"
-                        type="number"
-                        value={editForm.minMarks}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            minMarks: e.target.value,
-                          }))
-                        }
-                      />
-                      <div className="flex gap-2 mt-2">
-                        <Button
-                          onClick={() => updateEntry(entry.id)}
-                          className="bg-green-600"
-                        >
-                          Save
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => setEditingEntryId(null)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="font-semibold">{entry.subject?.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(entry.date).toDateString()} | {entry.session}{" "}
-                        | {entry.time}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Max: {entry.maxMarks} | Min: {entry.minMarks ?? "-"}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditingEntryId(entry.id);
-                            setEditForm({
-                              subjectId: entry.subjectId.toString(),
-                              maxMarks: entry.maxMarks.toString(),
-                              minMarks: entry.minMarks?.toString() || "",
-                              date: new Date(entry.date),
-                              session: entry.session,
-                              time: entry.time,
-                            });
-                          }}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteEntry(entry.id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground italic">No entries yet.</p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add Subject to Exam Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Subject to Exam</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Subject Select */}
-          <div>
-            <Label>Subject</Label>
-            <select
-              value={form.subjectId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, subjectId: e.target.value }))
-              }
-              className="w-full border rounded px-3 py-2"
-            >
-              <option value="">Select Subject</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date Picker */}
-          <div>
-            <Label>Date</Label>
-            <Calendar
-              mode="single"
-              selected={form.date}
-              onSelect={(date) => date && setForm((f) => ({ ...f, date }))}
-              className="rounded-md border"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="max-w-7xl mx-auto mt-10 px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Add Subject Form */}
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>Timetable</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <Label>Session</Label>
-              <Select
-                value={form.session}
-                onValueChange={(val) =>
-                  setForm((f) => ({ ...f, session: val as "FN" | "AN" }))
-                }
+              <Label>Subject</Label>
+              <select
+                value={form.subjectId}
+                onChange={(e) => handleInputChange("subjectId", e.target.value)}
+                className="w-full border rounded px-3 py-2"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select session" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FN">FN</SelectItem>
-                  <SelectItem value="AN">AN</SelectItem>
-                </SelectContent>
-              </Select>
+                <option value="">Select Subject</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
             </div>
+            <Label className="pr-2">Date</Label>
             <div>
-              <Label>Time</Label>
-              <Input
-                placeholder="e.g. 09:00 - 12:00"
-                value={form.time}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, time: e.target.value }))
-                }
+              <DatePicker
+                selected={form.date}
+                onChange={(date) => date && handleInputChange("date", date)}
+                className="w-full border rounded px-3 py-2"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Max Marks</Label>
-              <Input
-                type="number"
-                value={form.maxMarks}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, maxMarks: e.target.value }))
-                }
-                placeholder="e.g. 100"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Session</Label>
+                <Select
+                  value={form.session}
+                  onValueChange={(val) =>
+                    handleInputChange("session", val as "FN" | "AN")
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select session" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="FN">FN</SelectItem>
+                    <SelectItem value="AN">AN</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Time</Label>
+                <Input
+                  placeholder="e.g. 09:00 - 12:00"
+                  value={form.time}
+                  onChange={(e) => handleInputChange("time", e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <Label>Min Marks</Label>
-              <Input
-                type="number"
-                value={form.minMarks}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, minMarks: e.target.value }))
-                }
-                placeholder="e.g. 35"
-              />
-            </div>
-          </div>
 
-          <Button onClick={createEntry}>Add Subject</Button>
-        </CardContent>
-      </Card>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Max Marks</Label>
+                <Input
+                  type="number"
+                  value={form.maxMarks}
+                  onChange={(e) =>
+                    handleInputChange("maxMarks", e.target.value)
+                  }
+                  placeholder="e.g. 100"
+                />
+              </div>
+              <div>
+                <Label>Min Marks</Label>
+                <Input
+                  type="number"
+                  value={form.minMarks}
+                  onChange={(e) =>
+                    handleInputChange("minMarks", e.target.value)
+                  }
+                  placeholder="e.g. 35"
+                />
+              </div>
+            </div>
+
+            <Button onClick={createEntry}>Add Subject</Button>
+            <Card className="bg-yellow-100  border-yellow-400 text-yellow-800">
+              <CardContent className="p-4">
+                ⚠️ You can't create the same subject more than once for this
+                exam.
+              </CardContent>
+            </Card>
+          </CardContent>
+        </Card>
+
+        {/* Exam Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">{exam.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p>
+              <strong>Batch:</strong> {exam.batch || "-"}
+            </p>
+            <p>
+              <strong>Group:</strong> {exam.group?.name}
+            </p>
+
+            <h3 className="text-lg font-semibold mt-4">Subjects</h3>
+            {exam.entries.length ? (
+              <ul className="space-y-4">
+                {exam.entries.map((entry) => (
+                  <li key={entry.id} className="border p-4 rounded space-y-2">
+                    {editingEntryId === entry.id ? (
+                      <>
+                        <select
+                          value={editForm.subjectId}
+                          onChange={(e) =>
+                            handleEditInputChange("subjectId", e.target.value)
+                          }
+                          className="w-full border rounded px-3 py-2"
+                        >
+                          <option value="">Select Subject</option>
+                          {subjects.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+
+                        <DatePicker
+                          selected={editForm.date}
+                          onChange={(date) =>
+                            date && handleEditInputChange("date", date)
+                          }
+                          className="w-full border rounded px-3 py-2"
+                        />
+
+                        <Select
+                          value={editForm.session}
+                          onValueChange={(val) =>
+                            handleEditInputChange("session", val as "FN" | "AN")
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Session" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="FN">FN</SelectItem>
+                            <SelectItem value="AN">AN</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Input
+                          placeholder="Time"
+                          value={editForm.time}
+                          onChange={(e) =>
+                            handleEditInputChange("time", e.target.value)
+                          }
+                        />
+                        <Input
+                          placeholder="Max Marks"
+                          type="number"
+                          value={editForm.maxMarks}
+                          onChange={(e) =>
+                            handleEditInputChange("maxMarks", e.target.value)
+                          }
+                        />
+                        <Input
+                          placeholder="Min Marks"
+                          type="number"
+                          value={editForm.minMarks}
+                          onChange={(e) =>
+                            handleEditInputChange("minMarks", e.target.value)
+                          }
+                        />
+
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            onClick={() => updateEntry(entry.id)}
+                            className="bg-green-600"
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setEditingEntryId(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold">{entry.subject?.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(entry.date).toDateString()} |{" "}
+                          {entry.session} | {entry.time}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Max: {entry.maxMarks} | Min: {entry.minMarks ?? "-"}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingEntryId(entry.id);
+                              setEditForm({
+                                subjectId: entry.subjectId.toString(),
+                                maxMarks: entry.maxMarks.toString(),
+                                minMarks: entry.minMarks?.toString() || "",
+                                date: new Date(entry.date),
+                                session: entry.session,
+                                time: entry.time,
+                              });
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteEntry(entry.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-foreground italic">No entries yet.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -410,6 +410,7 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 
     const token = await generateToken({ id: user.id });
+    console.log(token);
 
     res.setHeader("Authorization", `Bearer ${token}`);
 
@@ -431,13 +432,17 @@ export const loginUser = async (req: Request, res: Response) => {
 // @access  Private
 export const getUser = async (req: Request, res: Response) => {
   try {
-    const { id, avatarUrl, fullName, email, createdAt, updatedAt } = req.user;
+    const { id, avatarUrl, fullName, email, school,createdAt, updatedAt } = req.user;
 
     return res.status(200).json({
       id,
       avatarUrl,
       fullName,
       email,
+      school: {
+        id: school?.id,
+        role: school?.role,
+      },
       createdAt,
       updatedAt,
     });
