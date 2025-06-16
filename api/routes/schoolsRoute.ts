@@ -102,7 +102,7 @@ router.delete(
 );
 
 router.get("/school/:id/member", protect, admin, getMembers);
-router.get("/school/:id/allschoolmember", protect, admin, getAllSchoolMembers);
+router.get("/school/:id/allschoolmember", protect, getAllSchoolMembers);
 
 router.post("/school/:id/group", protect, admin, createGroup);
 router.get("/school/:id/group",  getGroups);

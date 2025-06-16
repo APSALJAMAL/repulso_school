@@ -11,10 +11,9 @@ interface Group {
 }
 
 export default function GroupListPage() {
-  // ✅ Step 1: Use correct param names based on your folder structure
   const params = useParams();
-  const schoolId = params?.id as string; // folder: /school/[id]/
-  const userId = params?.userId as string; // folder: /profile/[userId]/...
+  const schoolId = params?.id as string;
+  const userId = params?.userId as string;
 
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,9 +30,7 @@ export default function GroupListPage() {
           throw new Error(`❌ Failed to fetch: ${res.status} ${errorText}`);
         }
 
-        const groupData: Group[] = await res.json(); // ✅ use only once
-        console.log("Fetched groups:", groupData);
-
+        const groupData: Group[] = await res.json();
         const sanitized = groupData.map((g) => ({
           ...g,
           members: Array.isArray(g.members) ? g.members : [],
@@ -54,26 +51,37 @@ export default function GroupListPage() {
     group.members.some((member) => member.userId === Number(userId)),
   );
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <p className="p-4">Loading...</p>;
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-semibold mb-4">Your Groups</h2>
+      <h2 className="text-2xl font-semibold mb-6">Your Groups</h2>
       {filteredGroups.length === 0 ? (
         <p className="text-gray-500">You are not in any groups yet.</p>
       ) : (
-        <ul className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredGroups.map((group) => (
-            <li key={group.id} className="p-3 border rounded shadow-sm">
-              <Link
-                href={`/school/${schoolId}/profile/${userId}/groups/${group.id}`}
-                className="text-blue-600 hover:underline"
-              >
-                {group.name}
-              </Link>
-            </li>
+            <Link
+              key={group.id}
+              href={`/school/${schoolId}/profile/${userId}/groups/${group.id}`}
+              className="relative block rounded-lg overflow-hidden border shadow-sm hover:shadow-md transition bg-white group"
+            >
+              {/* Diagonal Top Banner */}
+              <div className="h-20 bg-gradient-to-r from-green-700 to-emerald-900 transform -skew-y-6 origin-top-left"></div>
+
+              {/* Card Content */}
+              <div className="p-4 pt-6">
+                <h3 className="text-lg font-medium text-gray-800 group-hover:text-primary">
+                  {group.name}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {group.members.length} member
+                  {group.members.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </Link>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

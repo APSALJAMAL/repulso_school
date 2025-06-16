@@ -11,6 +11,7 @@ subject DONE ?
 announcement toaster ,aurtorized
 
 
+SUPER ADMIN
 /school/:id/dashboard - rollnumber , nof group
 /school/:id/dashboard/settings - DONE
 /school/:id/dashboard/subjects - DONE
@@ -20,3 +21,14 @@ announcement toaster ,aurtorized
 /school/:id/dashboard/exams/:examid - DONE ,label
 /school/:id/dashboard/exams/:examid/marks - DONE , rollnumber,style
 
+
+ADMIN
+
+TEACHER
+
+STUDENT
+1 com
+
+
+
+AUTH

@@ -2,13 +2,13 @@ import { getSchool } from "@/fetches/school";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import Navbar from "@/components/shared/Navbar";
+
 import QRCodeBox from "./QRCodeBox";
 import logo from "@/app/favicon.ico";
 import MarkRadarChart from "./RadarChart";
 
 import MarkRadarForExam from "./MarkRadarForExam";
-import UserAttendancePieChart from "./PieChart";
+import React from "react";
 
 type Exam = {
   id: number;
@@ -57,8 +57,6 @@ export default async function Profile({ params }: ProfilePageProps) {
 
   return (
     <>
-      <Navbar schoolId={schoolId} user={user} />
-
       <div className="relative mx-auto max-w-6xl p-8">
         {/* QR Code in top-right */}
         <div className="absolute top-8 right-8">
@@ -101,15 +99,12 @@ export default async function Profile({ params }: ProfilePageProps) {
           ) : (
             <div className="mt-12 space-y-10">
               {exams.map((exam) => (
-                <MarkRadarForExam key={exam.id} user={user} examId={""} />
+                <React.Fragment key={exam.id}>
+                  <MarkRadarForExam user={user} />
+                </React.Fragment>
               ))}
             </div>
           )}
-        </div>
-
-        {/* Pie Chart (unchanged) */}
-        <div className="mt-12">
-          <UserAttendancePieChart userId={3} attendanceId={2} />
         </div>
       </div>
     </>

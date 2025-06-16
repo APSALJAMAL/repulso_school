@@ -417,7 +417,7 @@ model MarkOnRow {
 
   @@unique([tableRowId, studentId])
 }
-
+///////////////
 
 model Timeslot {
   id        Int      @id @default(autoincrement())

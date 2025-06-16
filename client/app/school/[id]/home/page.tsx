@@ -1,9 +1,8 @@
 import { getSubjects } from "@/fetches/subjects";
-import { getUser } from "@/fetches/schoolUser";
+
 import { SubjectType } from "@/types/Subject";
 
 import SubjectCard from "@/components/features/dashboard/subjects/SubjectCard";
-import Navbar from "@/components/shared/Navbar";
 
 export default async function Home({
   params,
@@ -12,11 +11,9 @@ export default async function Home({
 }) {
   const schoolId = (await params).id;
   const subjects: SubjectType[] = await getSubjects(schoolId);
-  const user = await getUser(schoolId);
 
   return (
     <>
-      <Navbar schoolId={schoolId} user={user} />
       <div className="p-8">
         {/* <header className="mt-16 mb-4">
           <h1 className="text-3xl font-semibold">Hello, {user.fullName} 👋</h1>

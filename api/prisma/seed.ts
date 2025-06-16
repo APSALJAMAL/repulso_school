@@ -1,69 +1,61 @@
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import { PrismaClient, AccountType, Role } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
-const db = new PrismaClient();
+const prisma = new PrismaClient();
 
 async function main() {
-  const password = "12345678";
-  const hashedPassword = await bcrypt.hash(password, 12);
+  const schoolId = "cmbx6eryh0000o4bs234dbzhi";
 
-  const admin = await db.user.create({
-    data: {
-      fullName: "Admin User",
-      email: "admin@user.com",
-      isEmailVerified: true,
+  const usersData = Array.from({ length: 40 }).map((_, i) => {
+    const fullName = `User ${i + 1}`;
+    const email = `user${i + 1}@example.com`;
+    const hashedPassword = bcrypt.hashSync("password123", 10);
+    const avatarUrl = `https://api.dicebear.com/7.x/initials/svg?seed=User${i + 1}`;
+
+    return {
+      fullName,
+      email,
       hashedPassword,
-    },
+      avatarUrl,
+      isEmailVerified: true,
+      provider: AccountType.DEFAULT,
+    };
   });
 
-  const student = await db.user.create({
-    data: {
-      fullName: "Student User",
-      email: "student@user.com",
-      isEmailVerified: true,
-      hashedPassword,
-    },
+  // ✅ Step 1: Insert users using createMany and skip duplicates
+  await prisma.user.createMany({
+    data: usersData,
+    skipDuplicates: true, // this prevents error if the same email already exists
   });
 
-  const teacher = await db.user.create({
-    data: {
-      fullName: "Teacher User",
-      email: "teacher@user.com",
-      isEmailVerified: true,
-      hashedPassword,
-    },
-  });
-
-  await db.school.create({
-    data: {
-      name: "My School",
-      members: {
-        createMany: {
-          data: [
-            {
-              userId: admin.id,
-              role: "SUPER_ADMIN",
-            },
-            {
-              userId: teacher.id,
-              role: "TEACHER",
-            },
-            {
-              userId: student.id,
-              role: "STUDENT",
-            },
-          ],
-        },
+  // ✅ Step 2: Fetch all users with those emails to get their IDs
+  const allUsers = await prisma.user.findMany({
+    where: {
+      email: {
+        in: usersData.map((u) => u.email),
       },
     },
+    select: { id: true },
   });
+
+  // ✅ Step 3: Enroll them into the school
+  await prisma.memberOnSchools.createMany({
+    data: allUsers.map((user) => ({
+      userId: user.id,
+      schoolId,
+      role: Role.STUDENT,
+    })),
+    skipDuplicates: true,
+  });
+
+  console.log("✅ Dummy users seeded and linked to school.");
 }
+
 main()
-  .then(async () => {
-    await db.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await db.$disconnect();
+  .catch((e) => {
+    console.error("❌ Seeding failed:", e);
     process.exit(1);
+  })
+  .finally(() => {
+    prisma.$disconnect();
   });

@@ -65,7 +65,7 @@ export default function CreateSchool({ setSchoolAction }: Props) {
     <section className="flex w-full flex-col items-start gap-8">
       <div>
         <h1 className="text-primary text-2xl font-semibold">
-          Create your own school on Penwwws
+          Create your own school on Repulso
         </h1>
         <p className="text-muted-foreground">
           Creating your school is as simple as providing its name.
