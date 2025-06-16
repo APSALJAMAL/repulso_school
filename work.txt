@@ -26,9 +26,16 @@ ADMIN
 
 TEACHER
 
-STUDENT
-1 com
+
 
 
 
 AUTH
+routes
+
+
+subject nav
+pagination
+
+members profile
+markattendance

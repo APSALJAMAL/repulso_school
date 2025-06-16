@@ -13,7 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getInitials, getRoleRedirectPath } from "@/lib/utils";
-import { Book, LogOut, UserRound } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
 import { deleteCookie } from "cookies-next";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -55,6 +55,8 @@ type Props = {
 
 export default function Navbar({ schoolId, user }: Props) {
   const router = useRouter();
+  console.log(user.role);
+  console.log("user object:", user);
 
   const { data: school, isLoading: isSchoolLoading } = useQuery<SchoolType>({
     queryKey: ["school", schoolId],
@@ -157,17 +159,6 @@ export default function Navbar({ schoolId, user }: Props) {
             >
               <UserRound className="mr-2 h-4 w-4" />
               Profile
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-          <DropdownMenuGroup>
-            <DropdownMenuItem
-              onClick={() => {
-                if (!user?.id) return;
-                router.push(`/school/${schoolId}/home`);
-              }}
-            >
-              <Book className="mr-2 h-4 w-4" />
-              Subjects
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

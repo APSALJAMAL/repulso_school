@@ -1,6 +1,6 @@
 import AddSubjectMembersModal from "@/components/features/subject/AddSubjectMembersModal";
 import AssignmentTabContent from "@/components/features/subject/AssignmentTabContent";
-import AttendanceTabContent from "@/components/features/subject/AttendanceTabContent";
+// import AttendanceTabContent from "@/components/features/subject/AttendanceTabContent";
 import DocumentsTab from "@/components/features/subject/DocumentsTab";
 import GradesTabContent from "@/components/features/subject/GradesTabContent";
 import LogsTabContent from "@/components/features/subject/LogsTabContent";
@@ -28,7 +28,7 @@ export function getSubjectTabs(
       label: "Members",
       content: (
         <StudentsTabContent user={user} schoolId={schoolId} subject={subject}>
-          {user.role !== "STUDENT" && (
+          {user.role == "STUDENT" && (
             <AddSubjectMembersModal schoolId={schoolId} subject={subject} />
           )}
         </StudentsTabContent>
@@ -45,17 +45,17 @@ export function getSubjectTabs(
         />
       ),
     },
-    {
-      value: "attendance",
-      label: "Attendance",
-      content: (
-        <AttendanceTabContent
-          schoolId={schoolId}
-          subjectId={subject.id}
-          user={user}
-        />
-      ),
-    },
+    // {
+    //   value: "attendance",
+    //   label: "Attendance",
+    //   content: (
+    //     <AttendanceTabContent
+    //       schoolId={schoolId}
+    //       subjectId={subject.id}
+    //       user={user}
+    //     />
+    //   ),
+    // },
   ];
 
   if (user.role !== "STUDENT") {

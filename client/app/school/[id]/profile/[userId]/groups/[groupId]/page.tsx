@@ -6,6 +6,7 @@ import Image from "next/image";
 import UserAttendancePieChart from "./PieChart";
 import ExamTimetable from "./ExamTimetable";
 import Leaderboard from "./Leaderboard";
+import GroupMembersPage from "./member";
 
 interface Group {
   id: number;
@@ -171,21 +172,25 @@ export default function GroupDetailsPage() {
 
       {/* Tabs */}
       <div className="flex gap-4 border-b mb-6">
-        {["announcements", "attendance", "leaderboard", "timetable"].map(
-          (tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 font-medium border-b-2 ${
-                activeTab === tab
-                  ? "border-emerald-600 text-emerald-700"
-                  : "border-transparent text-gray-500"
-              }`}
-            >
-              {tab[0].toUpperCase() + tab.slice(1)}
-            </button>
-          ),
-        )}
+        {[
+          "announcements",
+          "attendance",
+          "leaderboard",
+          "timetable",
+          "members",
+        ].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 font-medium border-b-2 ${
+              activeTab === tab
+                ? "border-emerald-600 text-emerald-700"
+                : "border-transparent text-gray-500"
+            }`}
+          >
+            {tab[0].toUpperCase() + tab.slice(1)}
+          </button>
+        ))}
       </div>
 
       {/* Tab Content */}
@@ -306,6 +311,17 @@ export default function GroupDetailsPage() {
             />
           ) : (
             <p className="text-gray-500 italic">No exams available.</p>
+          )}
+        </div>
+      )}
+
+      {activeTab === "members" && (
+        <div className=" p-4 ">
+          <h4 className="text-lg mb-4 font-semibold">🫂 Members</h4>
+          {attendances.length > 0 ? (
+            <GroupMembersPage />
+          ) : (
+            <p className="text-gray-500 italic">No members data.</p>
           )}
         </div>
       )}
