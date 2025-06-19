@@ -15,14 +15,17 @@ assignment submit
 
 
 
-owner access
+
 loading
 outer
 subject mark
-scroll bar
+
+protect route
 
 
 TEACHER
+members
+studentpage
 
 
 
@@ -30,7 +33,10 @@ TEACHER
 
 AUTH
 routes
-
+attendance teacher,box,sort,layout,backk button
+separate admin test
+exam back button
+exam mark layout,save,bb
 
 subject nav
 pagination
@@ -38,4 +44,25 @@ pagination
 members profile
 markattendance
 
+///////////////////////////////
+AUTH
+console
+lp
+
+//////////////////////////////
+
+/-even unauthorized can access
+/sign-in,/sign-up,/console - even unauthorized can access
+school/:id/home - student ,teacher
+school/:id/profile - student ,teacher
+school/:id/profile/:userId/groups/:groupId - student ,teacher
+school/:id/profile/:userId - access to all even unauthorized
+school/:id/profile/:userId/details - student ,teacher
+school/:id/subjects/* - student,teacher,admin,super_admin
+school/:id/dashboard - admin
+school/:id/dashboard/subjects - admin
+school/:id/dashboard/group/*- admin
+school/:id/dashboard/custom-fields/database - super_admin
+school/:id/dashboard/custom-fields/* - super_admin
+school/:id/dashboard/settings - super_admin
 

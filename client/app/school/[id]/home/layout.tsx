@@ -81,7 +81,7 @@ export default function GroupLayoutClient({ children }: Props) {
               <SidebarItem
                 href={`/school/${schoolId}/profile/${userId}`}
                 icon={UserRound}
-                label="Profile"
+                label="User"
               />
               <SidebarItem
                 href={`/school/${schoolId}/profile/${userId}/groups`}
