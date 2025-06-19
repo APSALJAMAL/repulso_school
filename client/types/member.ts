@@ -8,4 +8,5 @@ export type MemberType = {
   groups: GroupType[];
   avatarUrl?: string;
   role: RoleType;
+  rollNumber?: string;
 };

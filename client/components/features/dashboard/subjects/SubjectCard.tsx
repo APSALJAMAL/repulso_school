@@ -18,17 +18,22 @@ export default function SubjectCard({ subject, schoolId }: Props) {
 
   return (
     <Link href={`/school/${schoolId}/subjects/${subject.id}`}>
-      <Card>
-        <Image
-          src={imageSrc}
-          alt={subject.name}
-          width={200}
-          height={150}
-          className="h-[150px] w-full rounded-t-lg object-cover"
-        />
-        <div className="flex h-20 flex-col justify-start">
-          <h2 className="mt-3 px-2 font-semibold">{subject.name}</h2>
-          <TeachersAvatars teachers={subject.teachers} />
+      <Card className="group cursor-pointer transform-gpu transition-transform duration-500 ease-in-out">
+        <div className="relative h-full w-full rounded-2xl shadow-md transition-all duration-300 group-hover:scale-[1.05] group-hover:shadow-2xl group-hover:-rotate-x-2 group-hover:rotate-y-2">
+          <div className="relative h-[150px] w-full overflow-hidden rounded-t-2xl">
+            <Image
+              src={imageSrc}
+              alt={subject.name}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+            />
+          </div>
+          <div className="flex h-24 flex-col justify-start rounded-b-2xl  p-3 text-white">
+            <h2 className="text-lg text-accent-foreground font-bold">
+              {subject.name}
+            </h2>
+            <TeachersAvatars teachers={subject.teachers} />
+          </div>
         </div>
       </Card>
     </Link>

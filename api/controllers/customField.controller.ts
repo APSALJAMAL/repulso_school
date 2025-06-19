@@ -1,14 +1,26 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+
 const prisma = new PrismaClient();
 
-// Create a new custom field by admin
+// ✅ Create a new custom field
 export const createCustomField = async (req: Request, res: Response) => {
   try {
-    const { userId, label, key, type, required } = req.body;
+    const { userId, schoolId, label, key, type, required } = req.body;
+
+    if (!userId || !schoolId || !label || !key || !type) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
 
     const created = await prisma.userCustomField.create({
-      data: { userId, label, key, type, required },
+      data: {
+        userId,
+        schoolId,
+        label,
+        key,
+        type,
+        required,
+      },
     });
 
     res.status(201).json(created);
@@ -17,13 +29,13 @@ export const createCustomField = async (req: Request, res: Response) => {
   }
 };
 
-// Get all custom fields created by admin for a user
+// ✅ Get custom fields by school
 export const getCustomFields = async (req: Request, res: Response) => {
   try {
-    const userId = Number(req.params.userId);
+    const { schoolId } = req.params;
 
     const fields = await prisma.userCustomField.findMany({
-      where: { userId },
+      where: { schoolId },
       include: { values: true },
     });
 
@@ -33,7 +45,7 @@ export const getCustomFields = async (req: Request, res: Response) => {
   }
 };
 
-// Update a custom field
+// ✅ Update a custom field
 export const updateCustomField = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -50,7 +62,7 @@ export const updateCustomField = async (req: Request, res: Response) => {
   }
 };
 
-// Delete a custom field
+// ✅ Delete a custom field
 export const deleteCustomField = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -65,28 +77,62 @@ export const deleteCustomField = async (req: Request, res: Response) => {
   }
 };
 
-// Add a custom value by user
+// ✅ Add or update a custom value
 export const addCustomValue = async (req: Request, res: Response) => {
   try {
-    const { fieldId, userId, value } = req.body;
+    const { fieldId, userId, value, schoolId } = req.body;
 
-    const created = await prisma.userCustomFieldValue.create({
-      data: { fieldId, userId, value },
+    if (!fieldId || !userId || !value || !schoolId) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    const membership = await prisma.memberOnSchools.findUnique({
+      where: {
+        userId_schoolId: {
+          userId,
+          schoolId,
+        },
+      },
     });
 
-    res.status(201).json(created);
+    if (!membership) {
+      return res.status(403).json({ error: "User not part of the school" });
+    }
+
+    const saved = await prisma.userCustomFieldValue.upsert({
+      where: {
+        fieldId_userId: {
+          fieldId,
+          userId,
+        },
+      },
+      update: { value },
+      create: { fieldId, userId, value },
+    });
+
+    res.status(200).json(saved);
   } catch (error) {
+    console.error("❌ Prisma error:", error);
     res.status(500).json({ error: (error as Error).message });
   }
 };
 
-// Get all values for a user
+// ✅ Get all custom values by school
 export const getCustomValues = async (req: Request, res: Response) => {
   try {
-    const userId = Number(req.params.userId);
+    const { schoolId } = req.params;
+
+    const members = await prisma.memberOnSchools.findMany({
+      where: { schoolId },
+      select: { userId: true },
+    });
+
+    const userIds = members.map((m) => m.userId);
 
     const values = await prisma.userCustomFieldValue.findMany({
-      where: { userId },
+      where: {
+        userId: { in: userIds },
+      },
       include: { field: true },
     });
 
@@ -96,7 +142,7 @@ export const getCustomValues = async (req: Request, res: Response) => {
   }
 };
 
-// Update a user's custom value
+// ✅ Update a user's custom value
 export const updateCustomValue = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -113,7 +159,7 @@ export const updateCustomValue = async (req: Request, res: Response) => {
   }
 };
 
-// Delete a custom value
+// ✅ Delete a custom value
 export const deleteCustomValue = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -128,14 +174,14 @@ export const deleteCustomValue = async (req: Request, res: Response) => {
   }
 };
 
-// Get all custom fields (admin/global)
-export const getAllCustomFields = async (req: Request, res: Response) => {
+// ✅ Get all fields (admin/global)
+export const getAllCustomFields = async (_req: Request, res: Response) => {
   try {
     const fields = await prisma.userCustomField.findMany({
       include: {
         user: true,
         values: {
-          include: { user: true }
+          include: { user: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -147,13 +193,13 @@ export const getAllCustomFields = async (req: Request, res: Response) => {
   }
 };
 
-// Get all custom values (admin/global)
-export const getAllCustomValues = async (req: Request, res: Response) => {
+// ✅ Get all values (admin/global)
+export const getAllCustomValues = async (_req: Request, res: Response) => {
   try {
     const values = await prisma.userCustomFieldValue.findMany({
       include: {
         field: {
-          include: { user: true }
+          include: { user: true },
         },
         user: true,
       },
@@ -165,4 +211,3 @@ export const getAllCustomValues = async (req: Request, res: Response) => {
     res.status(500).json({ error: (error as Error).message });
   }
 };
-

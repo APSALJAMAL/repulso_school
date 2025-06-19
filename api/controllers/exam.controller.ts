@@ -241,3 +241,29 @@ export const getExamsByUserId =  async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error fetching exam marks" });
   }
 };
+
+// // exam.controller.ts
+// export const getExamsBySchool = async (req: Request, res: Response) => {
+//   const schoolId = req.params.schoolId; // or req.query.schoolId
+
+//   try {
+//     const exams = await prisma.exam.findMany({
+//       where: {
+//         group: {
+//           schoolId: schoolId, // Filter by group’s schoolId
+//         },
+//       },
+//       include: {
+//         group: true,
+//       },
+//       orderBy: {
+//         createdAt: "desc",
+//       },
+//     });
+
+//     res.status(200).json(exams);
+//   } catch (error) {
+//     res.status(500).json({ error: "Failed to fetch exams." });
+//   }
+// };
+

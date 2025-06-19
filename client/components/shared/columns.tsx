@@ -74,6 +74,18 @@ export function GetColumns(
         ),
     },
     {
+      accessorKey: "rollNumber",
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Roll Number <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => <div>{row.original.rollNumber ?? "N/A"}</div>,
+    },
+    {
       accessorKey: "email",
       header: ({ column }) => (
         <Button

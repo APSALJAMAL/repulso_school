@@ -4,8 +4,7 @@ import cors from "cors";
 import usersRoute from "./routes/usersRoute";
 import schoolsRoute from "./routes/schoolsRoute";
 import devicesRoute from "./routes/devicesRoute";
-import timetable from "./routes/timetable";
-import timeslot from "./routes/timeslotRoutes";
+
 import announcement from "./routes/announcements";
 import examRoutes from "./routes/exam.routes";
 import examMarkRoutes from "./routes/examMarkRoutes";
@@ -39,8 +38,7 @@ app.listen(port, () => {
 app.use("/api", usersRoute);
 app.use("/api", schoolsRoute);
 app.use("/api", devicesRoute);
-app.use("/api/timetable", timetable);
-app.use("/api", timeslot);
+
 app.use("/api/announcements", announcement);
 app.use("/api/exams", examRoutes);
 app.use("/api/exam-marks", examMarkRoutes);

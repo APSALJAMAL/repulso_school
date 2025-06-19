@@ -1,6 +1,7 @@
 // app/exams/[examId]/page.tsx
 import axios from "@/lib/axiosInstance";
 import { cookies } from "next/headers";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ExamMarksPageClient from "./ExamMarksPageClient";
 import ExamMarksTable from "./ExamMarksTable";
 
@@ -22,16 +23,28 @@ export default async function ExamMarksPage({
 
   return (
     <div className="max-w-5xl mx-auto mt-10">
-      <ExamMarksPageClient
-        examId={examId}
-        schoolId={schoolId}
-        groupId={groupId}
-      />
-      <ExamMarksTable
-        examId={Number(examId)}
-        schoolId={schoolId}
-        groupId={groupId}
-      />
+      <Tabs defaultValue="marks" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="marks">Marks</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="marks">
+          <ExamMarksPageClient
+            examId={examId}
+            schoolId={schoolId}
+            groupId={groupId}
+          />
+        </TabsContent>
+
+        <TabsContent value="results">
+          <ExamMarksTable
+            examId={Number(examId)}
+            schoolId={schoolId}
+            groupId={groupId}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

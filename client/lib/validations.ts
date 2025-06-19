@@ -64,3 +64,22 @@ export const marksTableSchema = z.object({
 });
 
 export type MarksTableFormData = z.infer<typeof marksTableSchema>;
+
+export const editUserSchema = z.object({
+  fullName: z
+    .string()
+    .min(2, { message: "Full name must be at least 2 characters" })
+    .max(100, { message: "Full name must be at most 100 characters" }),
+
+  rollNumber: z
+    .string()
+    .max(50, { message: "Roll number must be at most 50 characters" })
+    .optional()
+    .or(z.literal("")), // allows empty string
+
+  avatarUrl: z
+    .string()
+    .url({ message: "Must be a valid URL" })
+    .optional()
+    .or(z.literal("")), // allows empty string
+});

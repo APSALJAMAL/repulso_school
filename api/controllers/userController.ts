@@ -432,52 +432,66 @@ export const loginUser = async (req: Request, res: Response) => {
 // @access  Private
 export const getUser = async (req: Request, res: Response) => {
   try {
-    const { id, avatarUrl, fullName, email, school,createdAt, updatedAt } = req.user;
+    const userId = req.user.id;
 
-    return res.status(200).json({
-      id,
-      avatarUrl,
-      fullName,
-      email,
-      school: {
-        id: school?.id,
-        role: school?.role,
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        avatarUrl: true,
+        fullName: true,
+        email: true,
+        createdAt: true,
+        updatedAt: true,
+        schools: {
+          select: {
+            schoolId: true,
+            role: true,
+            rollNumber: true,
+            school: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
-      createdAt,
-      updatedAt,
     });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json(user);
   } catch (error: any) {
-    console.log(error.message);
-    return res.status(500).send({ message: error.message });
+    console.error("Get User Error:", error.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
 // @desc    Edit user data
 // @route   PUT /api/me
 // @access  Private
+// controllers/userController.ts
+
 export const editUser = async (req: Request, res: Response) => {
   try {
-    const { fullName, avatarUrl } = req.body;
+    const { fullName, avatarUrl, rollNumber, schoolId } = req.body;
 
-    if (!fullName || (avatarUrl != "" && avatarUrl != null && !avatarUrl)) {
-      return res.status(400).send("Missing required fields");
+    if (!fullName || fullName.trim().length < 3 || fullName.trim().length > 50) {
+      return res.status(400).json({ message: "Full name must be between 3 and 50 characters" });
     }
 
-    if (fullName.length < 3 || fullName.length > 50) {
-      return res.status(400).send("Full name must be between 3 and 50 characters");
-    }
+    let url = null;
 
-    let url;
-    if (avatarUrl != "" && avatarUrl != null) {
-      if (
-        !avatarUrl.startsWith(
-          `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/`
-        )
-      ) {
-        return res.status(400).send("Invalid file url");
+    if (avatarUrl && avatarUrl.trim() !== "") {
+      const cloudinaryDomain = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/`;
+      if (!avatarUrl.startsWith(cloudinaryDomain)) {
+        return res.status(400).json({ message: "Invalid file URL" });
       }
 
-      let publicId = avatarUrl.split("/").pop().split(".")[0];
-
+      const publicId = avatarUrl.split("/").pop()?.split(".")[0];
       try {
         const cloudinaryRes = await axios.get(
           `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/resources/image/upload/${publicId}`,
@@ -488,22 +502,33 @@ export const editUser = async (req: Request, res: Response) => {
             },
           }
         );
-
         url = cloudinaryRes.data.secure_url;
       } catch {
-        return res.status(404).send("Image not found in cloudinary");
+        return res.status(404).json({ message: "Image not found in Cloudinary" });
       }
-    } else {
-      url = avatarUrl;
     }
 
+    // Step 1: Update rollNumber first if schoolId is provided
+    if (schoolId) {
+      await db.memberOnSchools.update({
+        where: {
+          userId_schoolId: {
+            userId: req.user.id,
+            schoolId,
+          },
+        },
+        data: {
+          rollNumber: rollNumber || null,
+        },
+      });
+    }
+
+    // Step 2: Update user profile info
     const user = await db.user.update({
-      where: {
-        id: req.user.id,
-      },
+      where: { id: req.user.id },
       data: {
         fullName: fullName.trim(),
-        avatarUrl: url == "" ? null : url,
+        avatarUrl: url || null,
       },
       select: {
         id: true,
@@ -512,15 +537,33 @@ export const editUser = async (req: Request, res: Response) => {
         email: true,
         createdAt: true,
         updatedAt: true,
+        schools: {
+          where: {
+            schoolId: schoolId || undefined,
+          },
+          select: {
+            schoolId: true,
+            rollNumber: true,
+            school: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
 
     return res.status(200).json(user);
   } catch (error: any) {
-    console.log(error.message);
-    return res.status(500).send({ message: error.message });
+    console.error("Edit User Error:", error.message);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+
+
 
 // @desc    Get user data
 // @route   GET /api/me/:schoolId

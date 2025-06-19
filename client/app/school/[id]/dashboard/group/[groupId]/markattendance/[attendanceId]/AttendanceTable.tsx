@@ -25,6 +25,7 @@ type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "HOLIDAY" | "ON_DUTY";
 interface Member {
   id: number;
   name: string;
+  rollNumber: string;
 }
 interface StatusEntry {
   userId: number;
@@ -70,7 +71,11 @@ export default function MonthlyAttendance({
       );
       const data = await res.json();
       const formatted = Array.isArray(data.members)
-        ? data.members.map((m: any) => ({ id: m.id, name: m.fullName }))
+        ? data.members.map((m: any) => ({
+            id: m.id,
+            name: m.fullName,
+            rollNumber: m.rollNumber || "N/A",
+          }))
         : [];
       setMembers(formatted);
     } catch (err) {
@@ -142,8 +147,11 @@ export default function MonthlyAttendance({
           <table className="min-w-full table-fixed border-collapse">
             <thead className="bg-muted">
               <tr>
-                <th className="sticky left-0 bg-muted  p-2 border">Id</th>
-                <th className="sticky left-0 bg-muted  p-2 border">Member</th>
+                <th className="sticky left-0 bg-muted p-2 border">Id</th>
+                <th className="sticky left-0 bg-muted p-2 border">Member</th>
+                <th className="sticky left-0 bg-muted p-2 border">
+                  Roll Number
+                </th>
                 {dates.map((d) => (
                   <th
                     key={d.toISOString()}
@@ -159,13 +167,15 @@ export default function MonthlyAttendance({
             <tbody>
               {members.map((member) => (
                 <tr key={member.id}>
-                  <td className="sticky left-0 bg-background  p-2 border text-sm">
+                  <td className="sticky left-0 bg-background p-2 border text-sm">
                     {member.id}
                   </td>
-                  <td className="sticky w-20 left-0 bg-background  p-2 border text-sm">
+                  <td className="sticky left-0 bg-background p-2 border text-sm">
                     {member.name}
                   </td>
-
+                  <td className="sticky left-0 bg-background p-2 border text-sm">
+                    {member.rollNumber || "N/A"}
+                  </td>
                   {dates.map((d) => {
                     const iso = format(d, "yyyy-MM-dd");
                     const entry = entries.find(
@@ -174,7 +184,6 @@ export default function MonthlyAttendance({
                     const status = entry?.status as
                       | AttendanceStatus
                       | undefined;
-
                     return (
                       <td
                         key={iso}
@@ -208,7 +217,6 @@ export default function MonthlyAttendance({
                       </td>
                     );
                   })}
-
                   <td className="font-semibold text-sm border text-center bg-gray-100">
                     {Math.round(
                       (dates.filter((d) => {
@@ -227,7 +235,7 @@ export default function MonthlyAttendance({
               ))}
 
               <tr className="bg-muted font-medium text-xs text-center">
-                <td colSpan={2}>Day%</td>
+                <td colSpan={3}>Day%</td>
                 {dates.map((d) => {
                   const iso = format(d, "yyyy-MM-dd");
                   const presentCount = members.filter((m) => {

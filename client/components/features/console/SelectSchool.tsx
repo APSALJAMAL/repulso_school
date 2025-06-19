@@ -70,7 +70,7 @@ export default function SelectSchool({ setSchoolAction }: Props) {
     <section className="flex flex-col gap-8">
       <div>
         <h1 className="text-primary text-2xl font-semibold">
-          Choose your school on Penwwws
+          Choose your school on Repulso
         </h1>
         <p className="text-muted-foreground">
           Select the school that you want to access

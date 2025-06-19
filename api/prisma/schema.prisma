@@ -21,7 +21,7 @@ model User {
   email           String      @unique
   isEmailVerified Boolean     @default(false)
   hashedPassword  String?
-  provider        AccountType @default(DEFAULT)
+  provider        AccountType @default(DEFAULT)   
 
   activateTokens      ActivateToken[]
   passwordResetTokens PasswordResetToken[]
@@ -35,7 +35,7 @@ model User {
   attendance          Attendance[]
   logs                Log[]                @relation("author")
   logsOn              Log[]                @relation("LogOn")
-  timetableEntriesAsTeacher TimetableEntry[] @relation("TeacherOnTimetable")
+
   announcementMessages  AnnouncementMessage[]  @relation("UserAnnouncementMessages")
   examMarks ExamMark[]
   markAttendanceStatuses MarkAttendanceStatus[]
@@ -106,7 +106,7 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
+///////////////////////////
 model School {
   id          String  @id @default(cuid())
   name        String
@@ -125,6 +125,8 @@ model School {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  UserCustomField UserCustomField[]
 }
 
 model MemberOnSchools {
@@ -134,6 +136,7 @@ model MemberOnSchools {
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   role Role @default(STUDENT)
+  rollNumber      String? 
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -148,7 +151,7 @@ enum Role {
   TEACHER
   STUDENT
 }
-
+////////////////////
 model Fingerprint {
   id      Int    @id @default(autoincrement())
   content String
@@ -163,7 +166,7 @@ model Fingerprint {
 
   @@unique([schoolId, userId])
 }
-
+///////////////////////
 model Subject {
   id       Int     @id @default(autoincrement())
   name     String
@@ -178,7 +181,7 @@ model Subject {
   marksTable     MarksTableRow[]
   attendSessions AttendanceSession[]
   logs           Log[]
-  timetableEntries TimetableEntry[]
+
   examEntries ExamEntry[]
   examMarks ExamMark[]
 
@@ -242,7 +245,7 @@ enum Action {
   ATTENDANCE_SESSION_DELETE
   ATTENDANCE_DELETE
 }
-
+//////////////////////////
 model AttendanceSession {
   id             Int      @id @default(autoincrement())
   name           String
@@ -280,7 +283,7 @@ model DeviceCredentials {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-
+/////////////////////////////////
 model Topic {
   id   Int    @id @default(autoincrement())
   name String
@@ -351,7 +354,7 @@ model Submission {
 
   @@unique([studentId, assignmentId])
 }
-
+///////////////////////
 model Group {
   id   Int    @id @default(autoincrement())
   name String
@@ -365,7 +368,7 @@ model Group {
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   members MemberOnGroup[]
-  timetableEntries TimetableEntry[]
+
   markAttendances MarkAttendance[]
 
 
@@ -386,7 +389,7 @@ model MemberOnGroup {
   @@id([groupId, userId])
   @@unique([groupId, userId])
 }
-
+//////////////////
 model MarksTableRow {
   id    Int     @id @default(autoincrement())
   name  String
@@ -417,56 +420,6 @@ model MarkOnRow {
 
   @@unique([tableRowId, studentId])
 }
-///////////////
-
-model Timeslot {
-  id        Int      @id @default(autoincrement())
-  dayOfWeek Int      // 0 = Sunday, 1 = Monday ... 6 = Saturday
-  startTime String   // e.g. "09:00"
-  endTime   String   // e.g. "10:00"
-
-  timetableEntries TimetableEntry[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([dayOfWeek, startTime, endTime]) // unique timeslot per day/time
-}
-
-model TimetableEntry {
-  id        Int    @id @default(autoincrement())
-
-  groupId   Int
-  group     Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  subjectId Int
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-
-  teacherId Int
-  teacher   User   @relation("TeacherOnTimetable", fields: [teacherId], references: [id])
-
-  timeslotId Int
-  timeslot  Timeslot @relation(fields: [timeslotId], references: [id], onDelete: Cascade)
-
-  // Optional additions:
-  room      String?
-  weekType  WeekType @default(BOTH)
-  notes     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Constraints to avoid conflicts:
-  @@unique([groupId, timeslotId])
-  @@unique([teacherId, timeslotId])
-}
-
-enum WeekType {
-  A
-  B
-  BOTH
-}
-
 //////////////////
 model AnnouncementBoard {
   id        Int                   @id @default(autoincrement())
@@ -600,6 +553,8 @@ model UserCustomField {
   id        Int      @id @default(autoincrement())
   userId    Int
   user      User     @relation("CreatorFields", fields: [userId], references: [id], onDelete: Cascade)
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   label     String
   key       String

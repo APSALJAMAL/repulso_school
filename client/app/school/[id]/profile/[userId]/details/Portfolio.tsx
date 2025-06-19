@@ -19,6 +19,7 @@ interface Member {
   email: string;
   avatarUrl?: string | null;
   role: string;
+  rollNumber: string;
   groups: {
     id: number;
     name: string;
@@ -41,7 +42,7 @@ export default function Portfolio({ schoolId, userId }: PortfolioProps) {
 
       const [memberRes, fieldsRes, valuesRes] = await Promise.all([
         axios.get(`/school/${schoolId}/allschoolmember`, { headers }),
-        axios.get("/fields", { headers }),
+        axios.get(`/fields/school/${schoolId}`, { headers }),
         axios.get("/values", { headers }),
       ]);
 
@@ -53,6 +54,7 @@ export default function Portfolio({ schoolId, userId }: PortfolioProps) {
       setMember(matched || null);
       setFields(fieldsRes.data || []);
       setValues(valuesRes.data || []);
+      console.log("field", fieldsRes);
     } catch (error) {
       console.error("❌ Failed to load member:", error);
     } finally {
@@ -96,6 +98,9 @@ export default function Portfolio({ schoolId, userId }: PortfolioProps) {
           <div className="text-center sm:text-left">
             <h1 className="text-3xl font-bold">{member.fullName}</h1>
             <p className="text-sm opacity-90">{member.email}</p>
+            <p className="text-sm opacity-90">
+              Roll Number :{member.rollNumber}
+            </p>
             <p className="text-sm opacity-90">ID: {member.id}</p>
             {/* <p className="text-sm opacity-90">ID: {member.groups.}</p> */}
             <span className="inline-block mt-2 px-3 py-1 text-xs font-semibold bg-white text-foreground rounded-full">

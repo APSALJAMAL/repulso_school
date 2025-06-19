@@ -1,29 +1,32 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable prettier/prettier */
 "use client";
 
 import { useEffect, useState } from "react";
 import { CustomField, CustomValue } from "@/types/custom";
 import CustomFieldForm from "./CustomFieldForm";
-import CustomValueForm from "./CustomValueForm";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import api from "./api";
 import { getCookie } from "cookies-next";
+import { useParams } from "next/navigation";
+
 
 export default function CustomFieldsPage() {
+  const params = useParams();
+  const schoolId = params?.id as string; // ✅ get schoolId from route
+
   const [userId, setUserId] = useState<number | null>(null);
   const [fields, setFields] = useState<CustomField[]>([]);
-  const [values, setValues] = useState<CustomValue[]>([]);
+  const [, setValues] = useState<CustomValue[]>([]);
   const [loading, setLoading] = useState(true);
   const [fieldToEdit, setFieldToEdit] = useState<CustomField | null>(null);
-
   const loadUserAndData = async () => {
     try {
       const token = await getCookie("token");
@@ -34,8 +37,8 @@ export default function CustomFieldsPage() {
       setUserId(uid);
 
       const [fieldRes, valueRes] = await Promise.all([
-        api.get(`/fields/user/${uid}`),
-        api.get(`/values/user/${uid}`),
+        api.get(`/fields/school/${schoolId}`),
+        api.get(`/values/school/${schoolId}`),
       ]);
 
       setFields(fieldRes.data);
@@ -48,11 +51,10 @@ export default function CustomFieldsPage() {
   };
 
   useEffect(() => {
-    loadUserAndData();
-  }, []);
-
-  const getValue = (fieldId: number) =>
-    values.find((v) => v.fieldId === fieldId)?.value ?? "Not filled";
+    if (schoolId) {
+      loadUserAndData();
+    }
+  }, [schoolId]);
 
   if (loading || !userId) {
     return (
@@ -65,17 +67,26 @@ export default function CustomFieldsPage() {
   }
 
   return (
-    <div className="py-8 px-4 max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="w-xl h-fit">
+    <div className="py-10 px-6 md:px-12 lg:px-20 max-w-7xl mx-auto space-y-10">
+      <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
+        🛠️ Custom Fields
+      </h1>
+      <p className="text-muted-foreground text-sm">
+        Add and manage your custom fields dynamically.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Add/Edit Form */}
+        <Card className="col-span-1 w-80 h-fit shadow-xl rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
           <CardHeader>
-            <CardTitle className="text-xl">
-              {fieldToEdit ? "Edit Custom Field" : "Add Custom Field"}
+            <CardTitle className="text-lg font-semibold text-zinc-800 dark:text-white">
+              {fieldToEdit ? "✏️ Edit Custom Field" : "➕ Add Custom Field"}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <CustomFieldForm
               userId={userId}
+              schoolId={schoolId} 
               fieldToEdit={fieldToEdit}
               onSuccess={() => {
                 setFieldToEdit(null);
@@ -86,33 +97,31 @@ export default function CustomFieldsPage() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 space-y-4">
+        {/* Field List */}
+        <div className="md:col-span-2 grid grid-cols-3 h-fit sm:grid-cols-2 gap-6">
           {fields.map((field) => (
-            <Card key={field.id} className="transition hover:shadow-lg">
-              <CardHeader>
-                <CardTitle>
-                  {field.label}{" "}
-                  <span className="text-sm text-muted-foreground">
+            <Card
+              key={field.id}
+              className="border rounded-2xl p-4 hover:shadow-lg transition-transform hover:-translate-y-1 dark:border-zinc-700 dark:bg-zinc-900"
+            >
+              <CardHeader className="p-0 pb-3">
+                <CardTitle className="text-lg font-bold text-zinc-800 dark:text-white">
+                  {field.label}
+                  <span className="text-sm font-normal text-muted-foreground ml-1">
                     ({field.key})
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-muted-foreground text-sm">
-                  Type: {field.type}
+
+              <CardContent className="p-0 pt-2 space-y-3">
+                <div className="text-sm text-muted-foreground">
+                  🧬 Type: <span className="font-medium">{field.type}</span>
                 </div>
-                <div>
-                  <strong>Current Value:</strong>{" "}
-                  <span className="italic">{getValue(field.id)}</span>
-                </div>
-                <CustomValueForm
-                  userId={userId}
-                  fieldId={field.id}
-                  onSuccess={loadUserAndData}
-                />
-                <div className="pt-4 flex gap-2">
+
+                <div className="pt-4">
                   <Button
                     variant="outline"
+                    className="w-full"
                     onClick={() => setFieldToEdit(field)}
                   >
                     Edit Field

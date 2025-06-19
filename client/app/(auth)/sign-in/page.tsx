@@ -18,8 +18,8 @@ export default async function SigninPage({
           href="/"
           className="text-primary mb-auto flex w-fit items-center gap-1 self-start text-lg font-semibold md:hidden"
         >
-          <PenwwwsIcon className="h-5 w-5" />
-          <span>Penwwws</span>
+          <PenwwwsIcon />
+          <span>Repulso</span>
         </Link>
 
         <div className="flex h-full w-full flex-col items-start justify-center gap-6 md:w-[30rem]">

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
@@ -20,59 +21,85 @@ interface Group {
   name: string;
 }
 
-export default function CreateExamPage() {
+export default function EditExamPage() {
   const router = useRouter();
   const params = useParams();
   const schoolId = params?.id as string;
+  const examId = params?.examId as string;
 
   const [name, setName] = useState("");
   const [batch, setBatch] = useState("");
   const [groupId, setGroupId] = useState<number | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        const res = await fetch(
-          `http://localhost:5555/api/school/${schoolId}/group`,
-        );
-        const data = await res.json();
-        setGroups(data);
-      } catch (err) {
-        toast.error("Failed to load groups");
-      }
-    };
+    if (schoolId) {
+      fetchGroups();
+    }
+    if (examId) {
+      fetchExamDetails();
+    }
+  }, [schoolId, examId]);
 
-    if (schoolId) fetchGroups();
-  }, [schoolId]);
+  const fetchGroups = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:5555/api/school/${schoolId}/group`,
+      );
+      const data = await res.json();
+      setGroups(data);
+    } catch (err) {
+      toast.error("❌ Failed to load groups");
+    }
+  };
 
-  const handleSubmit = async () => {
+  const fetchExamDetails = async () => {
+    try {
+      const res = await fetch(`http://localhost:5555/api/exams/${examId}`);
+      if (!res.ok) throw new Error("Failed to fetch exam");
+
+      const exam = await res.json();
+      setName(exam.name || "");
+      setBatch(exam.batch || "");
+      setGroupId(exam.groupId || null);
+    } catch (err) {
+      toast.error("❌ Failed to fetch exam details");
+    }
+  };
+
+  const handleUpdate = async () => {
     if (!name || !groupId) {
       toast.error("Please fill all required fields");
       return;
     }
 
-    const res = await fetch("http://localhost:5555/api/exams", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, batch, groupId }),
-    });
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:5555/api/exams/${examId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, batch, groupId }),
+      });
 
-    if (res.ok) {
-      toast.success("Exam created successfully");
-      router.push(`/school/${schoolId}/dashboard/exams`);
-    } else {
-      toast.error("Failed to create exam");
+      if (res.ok) {
+        toast.success("✅ Exam updated successfully");
+        router.push(`/school/${schoolId}/dashboard/exams`);
+      } else {
+        toast.error("❌ Failed to update exam");
+      }
+    } catch (err) {
+      toast.error("❌ Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="pt-40 flex items-center justify-center  bg-muted/20">
+    <div className="pt-40 flex items-center justify-center px-4 bg-muted/20">
       <Card className="w-full max-w-xl shadow-lg border-primary/20">
         <CardHeader>
-          <CardTitle className="text-2xl text-primary">
-            Create New Exam
-          </CardTitle>
+          <CardTitle className="text-2xl text-primary">Edit Exam</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -107,10 +134,11 @@ export default function CreateExamPage() {
           />
 
           <Button
-            onClick={handleSubmit}
+            onClick={handleUpdate}
+            disabled={loading}
             className="w-full bg-primary hover:bg-primary/90 text-white"
           >
-            Create Exam
+            {loading ? "Updating..." : "Update Exam"}
           </Button>
         </CardContent>
       </Card>

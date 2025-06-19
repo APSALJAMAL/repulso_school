@@ -42,9 +42,12 @@ const globalFilterFn: FilterFn<MemberType> = (
   const fullName = row.original.fullName.toLowerCase();
   const email = row.original.email.toLowerCase();
   const id = row.original.id;
+  const rollNumber = row.original.rollNumber?.toLowerCase() || "";
+
   return (
     fullName.includes(filterValue.toLowerCase()) ||
     email.includes(filterValue.toLowerCase()) ||
+    rollNumber.includes(filterValue.toLowerCase()) ||
     id === parseInt(filterValue)
   );
 };
@@ -54,7 +57,7 @@ export type ResetSelectionType = {
 };
 
 type DataTableProps = {
-  columns: ColumnDef<MemberType>[];
+  columns?: ColumnDef<MemberType>[];
   data: MemberType[];
   schoolId: string;
   defaultFilteredGroupIds?: number[];
@@ -79,9 +82,33 @@ export function DataTable({
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  const defaultColumns: ColumnDef<MemberType>[] = [
+    {
+      accessorKey: "fullName",
+      header: "Full Name",
+      cell: ({ row }) => row.original.fullName,
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+      cell: ({ row }) => row.original.email,
+    },
+    {
+      accessorFn: (row) => row.rollNumber || "N/A",
+      id: "rollNumber",
+      header: "Roll Number",
+      cell: (info) => info.getValue(),
+    },
+    {
+      accessorKey: "role",
+      header: "Role",
+      cell: ({ row }) => row.original.role || "N/A",
+    },
+  ];
+
   const table = useReactTable({
     data,
-    columns,
+    columns: columns || defaultColumns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -89,7 +116,6 @@ export function DataTable({
     onRowSelectionChange: setRowSelection,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
-
     globalFilterFn,
     state: {
       sorting,
@@ -110,6 +136,7 @@ export function DataTable({
     setSelectedMemberIds([]);
     table.toggleAllRowsSelected(false);
   }
+
   useImperativeHandle(resetSelectionRef, () => ({
     resetSelection: handleResetSelection,
   }));
@@ -122,11 +149,10 @@ export function DataTable({
         .map(Number),
     );
   }, [table, setSelectedMemberIds, rowSelection]);
-
+  console.log("Data received in DataTable:", data);
   return (
     <>
       <div className="flex w-full flex-wrap items-center justify-start gap-3 py-6 md:gap-6">
-        {" "}
         <TableSearch
           globalFilter={globalFilter}
           setGlobalFilter={setGlobalFilter}
@@ -139,23 +165,21 @@ export function DataTable({
         <RoleFilter defaultFilteredRole={defaultFilteredRole} table={table} />
         {children}
       </div>
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-x-auto h-100 rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -179,7 +203,7 @@ export function DataTable({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={(columns || defaultColumns).length}
                   className="h-24 text-center"
                 >
                   No results.

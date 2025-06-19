@@ -14,11 +14,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface Student {
   id: number;
   fullName: string;
   email: string;
+  rollNumber: string;
 }
 
 interface SubjectEntry {
@@ -29,13 +32,14 @@ interface SubjectEntry {
 }
 
 interface MarkEntry {
-  [subjectId: number]: number | string; // Now includes string for editable state
+  [subjectId: number]: number | string;
 }
 
 interface StudentMarks {
   studentId: number;
   marks: MarkEntry;
 }
+
 interface Exam {
   id: number;
   name: string;
@@ -96,20 +100,28 @@ export default function ExamMarksPageClient({
           }),
         ]);
 
-        const members: Student[] = Array.isArray(memberRes.data)
+        const members: any[] = Array.isArray(memberRes.data)
           ? memberRes.data
           : (memberRes.data?.members ?? []);
+
+        // ✅ FILTER ONLY STUDENTS
+        const studentsOnly: Student[] = members
+          .filter((m) => m.role === "STUDENT" || m.user?.role === "STUDENT")
+          .map((m) => ({
+            id: m.user?.id ?? m.id,
+            fullName: m.user?.fullName ?? m.fullName,
+            email: m.user?.email ?? m.email,
+            rollNumber: m.user?.rollNumber ?? m.rollNumber,
+          }));
 
         const subjectList: SubjectEntry[] = examRes.data?.entries ?? [];
         setExam(examRes.data || null);
 
         const existingMarks = Array.isArray(marksRes.data)
           ? marksRes.data
-          : Array.isArray(marksRes.data?.data)
-            ? marksRes.data.data
-            : [];
+          : (marksRes.data?.data ?? []);
 
-        const initialMarks: StudentMarks[] = members.map((student) => {
+        const initialMarks: StudentMarks[] = studentsOnly.map((student) => {
           const studentMarks = existingMarks.filter(
             (m: any) => m.studentId === student.id,
           );
@@ -125,7 +137,7 @@ export default function ExamMarksPageClient({
           return { studentId: student.id, marks: marksMap };
         });
 
-        setStudents(members);
+        setStudents(studentsOnly);
         setSubjects(subjectList);
         setMarks(initialMarks);
       } catch (err) {
@@ -159,10 +171,9 @@ export default function ExamMarksPageClient({
           headers: getAuthHeaders(),
         },
       );
-      console.log(
-        `✅ Auto-saved mark for student ${studentId}, subject ${subjectId}`,
-      );
+      toast.success(`Auto-saved mark for student ${studentId}`);
     } catch (err) {
+      toast.error("Auto-save failed");
       console.error("❌ Auto-save failed:", err);
     }
   };
@@ -174,7 +185,6 @@ export default function ExamMarksPageClient({
     subjectId: number,
     value: string,
   ) => {
-    // Always update the raw string
     setMarks((prev) =>
       prev.map((entry) =>
         entry.studentId === studentId
@@ -189,7 +199,6 @@ export default function ExamMarksPageClient({
       ),
     );
 
-    // Save only if value is valid
     const parsed = parseFloat(value);
     if (!isNaN(parsed)) {
       const subject = subjects.find((s) => s.subjectId === subjectId);
@@ -200,45 +209,82 @@ export default function ExamMarksPageClient({
     }
   };
 
-  if (loading) {
-    return <p className="text-center py-10">Loading data...</p>;
-  }
+  const handleSaveAll = async () => {
+    try {
+      await Promise.all(
+        marks.flatMap((studentMark) =>
+          Object.entries(studentMark.marks).map(async ([subjectId, value]) => {
+            const parsed = parseFloat(value as string);
+            if (!isNaN(parsed)) {
+              const subject = subjects.find(
+                (s) => s.subjectId === parseInt(subjectId),
+              );
+              if (!subject) return;
 
-  if (error) {
-    return <p className="text-center text-red-500 py-10">{error}</p>;
-  }
+              const mark = Math.min(parsed, subject.maxMarks);
+
+              await axios.post(
+                "/exam-marks",
+                {
+                  examEntryId: parseInt(examId),
+                  studentId: studentMark.studentId,
+                  subjectId: parseInt(subjectId),
+                  marks: mark,
+                },
+                {
+                  headers: getAuthHeaders(),
+                },
+              );
+            }
+          }),
+        ),
+      );
+      toast.success("All marks saved successfully!");
+    } catch (err) {
+      toast.error("Failed to save all marks.");
+      console.error("❌ Failed to save all marks:", err);
+    }
+  };
+
+  if (loading) return <p className="text-center py-10">Loading data...</p>;
+  if (error) return <p className="text-center text-red-500 py-10">{error}</p>;
 
   return (
-    <Card className="max-w-7xl mx-auto p-4">
-      <CardContent>
-        <div className="mb-4 space-y-1 text-sm text-gray-700">
+    <Card className="max-w-7xl mx-auto p-6 shadow-xl rounded-2xl space-y-6">
+      <CardContent className="flex justify-between items-start flex-col md:flex-row gap-4">
+        <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
           <div>
             <strong>Group ID:</strong> {groupId}
           </div>
           <div>
-            <strong>Group Name:</strong> {exam?.group.name || "Loading..."}
+            <strong>Group Name:</strong> {exam?.group.name}
           </div>
           <div>
             <strong>Exam ID:</strong> {examId}
           </div>
           <div>
-            <strong>Exam Name:</strong> {exam?.name || "Loading..."}
+            <strong>Exam Name:</strong> {exam?.name}
           </div>
         </div>
+        <Button className="self-end mt-2 md:mt-0" onClick={handleSaveAll}>
+          Save
+        </Button>
       </CardContent>
+
       <CardContent>
-        <CardTitle className="text-2xl">Enter Exam Marks</CardTitle>
-      </CardContent>
-      <CardContent>
+        <CardTitle className="text-2xl font-bold mb-4 text-primary">
+          Enter Exam Marks
+        </CardTitle>
         {subjects.length === 0 ? (
           <p className="text-gray-500">No subjects found.</p>
         ) : (
-          <>
+          <div className="overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead className="min-w-[120px]">Student</TableHead>
+                  <TableHead className="min-w-[120px]">Roll Number</TableHead>
+                  <TableHead className="min-w-[160px]">Email</TableHead>
                   {subjects.map((subject) => (
                     <TableHead key={subject.subjectId}>
                       <div className="flex flex-col">
@@ -259,12 +305,12 @@ export default function ExamMarksPageClient({
                   </TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {students.map((student) => {
                   const studentMarkEntry = marks.find(
                     (m) => m.studentId === student.id,
                   );
-
                   const total = subjects.reduce((sum, subject) => {
                     const val = studentMarkEntry?.marks[subject.subjectId];
                     const num = typeof val === "string" ? parseFloat(val) : val;
@@ -276,12 +322,13 @@ export default function ExamMarksPageClient({
                   return (
                     <TableRow key={student.id}>
                       <TableCell>{student.fullName}</TableCell>
+                      <TableCell>{student.rollNumber || "N/A"}</TableCell>
                       <TableCell>{student.email}</TableCell>
                       {subjects.map((subject) => (
                         <TableCell key={subject.subjectId}>
                           <Input
                             type="number"
-                            className="w-20"
+                            className="w-24"
                             min={0}
                             max={subject.maxMarks}
                             value={
@@ -303,7 +350,7 @@ export default function ExamMarksPageClient({
                 })}
               </TableBody>
             </Table>
-          </>
+          </div>
         )}
       </CardContent>
     </Card>

@@ -2,11 +2,11 @@ import { getSchool } from "@/fetches/school";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import QRCodeBox from "./QRCodeBox";
 import logo from "@/app/favicon.ico";
 import MarkRadarChart from "./RadarChart";
-
 import MarkRadarForExam from "./MarkRadarForExam";
 import React from "react";
 
@@ -50,63 +50,76 @@ export default async function Profile({ params }: ProfilePageProps) {
     getExamsByUserId(userId),
   ]);
 
+  const userSchool = user.schools?.[0]; // assuming user is part of only one school
+  const rollNumber = userSchool?.rollNumber;
+
   const today = format(new Date(), "EEE d MMMM yyyy");
 
   if (!user) return <div>User not found</div>;
   if (!school) return <div>School not found</div>;
 
   return (
-    <>
-      <div className="relative mx-auto max-w-6xl p-8">
-        {/* QR Code in top-right */}
-        <div className="absolute top-8 right-8">
-          <QRCodeBox
-            value={`${process.env.NEXT_PUBLIC_BASE_URL}/school/${schoolId}/profile/${user.id}`}
-            logoUrl={logo.src}
-          />
-        </div>
+    <div className="relative mx-auto max-w-6xl p-8">
+      {/* QR Code in top-right */}
+      <div className="absolute top-8 right-8">
+        <QRCodeBox
+          value={`${process.env.NEXT_PUBLIC_BASE_URL}/school/${schoolId}/profile/${user.id}`}
+          logoUrl={logo.src}
+        />
+      </div>
 
-        {/* User Profile Info */}
-        <div className="mt-16 mb-10 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative h-20 w-20">
-              <Avatar className="h-full w-full">
-                <AvatarImage src={user.avatarUrl ?? ""} alt={user.fullName} />
-                <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
-              </Avatar>
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold">Hi, {user.fullName} 👋</h1>
-              <p className="text-neutral-500">{user.email}</p>
-              <p className="text-neutral-500">User Id : {user.id}</p>
-              <Badge className="ml-2 capitalize">{user.role}</Badge>
-              <div className="mt-4 text-neutral-500 md:mt-0">
-                Today: {today}
-              </div>
-            </div>
+      {/* User Profile Info */}
+      <div className="mt-16 mb-10 flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-10">
+          <div className="relative">
+            <Avatar className="h-40 w-40">
+              <AvatarImage src={user.avatarUrl ?? ""} alt={user.fullName} />
+              <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </div>
+          <div>
+            <h1 className="text-3xl font-semibold">Hi, {user.fullName} 👋</h1>
+            <p className="mt-1 text-lg text-gray-700">
+              <span className="font-medium text-gray-700">Roll Number:</span>{" "}
+              {rollNumber ?? "N/A"}
+            </p>
+            <p className="text-neutral-500">{user.email}</p>
+            <p className="text-neutral-500">User Id : {user.id}</p>
+            <Badge className="ml-2 capitalize">{user.role}</Badge>
+            <div className="mt-4 text-neutral-500 md:mt-0">Today: {today}</div>
           </div>
         </div>
-
-        {/* ✅ Subject-Wise Radar Chart */}
-        <MarkRadarChart user={user} />
-
-        {/* ✅ Exam-Wise Radar Chart for each exam */}
-        <div className="mt-12 space-y-10">
-          {exams.length === 0 ? (
-            <div className="text-center text-gray-500">
-              No exams found for this user.
-            </div>
-          ) : (
-            <div className="mt-12 space-y-10">
-              {exams.map((exam) => (
-                <React.Fragment key={exam.id}>
-                  <MarkRadarForExam user={user} />
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
-    </>
+
+      {/* ✅ Tabs for Student */}
+      {user.role === "STUDENT" && (
+        <Tabs defaultValue="subject" className="mt-10 w-full">
+          <TabsList className="bg-gray-100">
+            <TabsTrigger value="subject">📚 Subject-wise</TabsTrigger>
+            <TabsTrigger value="exam">📝 Exam-wise</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="subject">
+            <MarkRadarChart user={user} />
+          </TabsContent>
+
+          <TabsContent value="exam">
+            {exams.length === 0 ? (
+              <div className="text-center text-gray-500 mt-6">
+                No exams found for this user.
+              </div>
+            ) : (
+              <div className="mt-6 space-y-10">
+                {exams.map((exam) => (
+                  <React.Fragment key={exam.id}>
+                    <MarkRadarForExam user={user} />
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
   );
 }

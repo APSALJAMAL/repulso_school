@@ -295,7 +295,7 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
 
             <h3 className="text-lg font-semibold mt-4">Subjects</h3>
             {exam.entries.length ? (
-              <ul className="space-y-4">
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {exam.entries.map((entry) => (
                   <li key={entry.id} className="border p-4 rounded space-y-2">
                     {editingEntryId === entry.id ? (

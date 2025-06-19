@@ -28,7 +28,7 @@ export default function AnnouncementsPage() {
   const fetchBoards = async () => {
     const res = await fetch("http://localhost:5555/api/announcements/boards");
     const data = await res.json();
-    setBoards(data);
+    setBoards(Array.isArray(data) ? data : (data.boards ?? []));
   };
 
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function AnnouncementsPage() {
       <h1 className="text-2xl font-bold">Announcement Boards</h1>
 
       {/* Create new board */}
-      <div className="flex gap-2">
+      <div className="flex w-2xs gap-2">
         <Input
           type="number"
           placeholder="Enter Group ID"

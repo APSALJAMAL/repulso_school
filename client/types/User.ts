@@ -6,4 +6,5 @@ export type UserType = {
   email: string;
   avatarUrl: string;
   role: RoleType;
+  rollNumber: string;
 };

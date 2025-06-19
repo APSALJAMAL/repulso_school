@@ -1,28 +1,26 @@
-attendance?
-exam?
-timetable
-profile?
-announcement ?
+
 social media
 
 
-home total group, rollnumber,logo,profile link
-subject DONE ?
-announcement toaster ,aurtorized
-
 
 SUPER ADMIN
-/school/:id/dashboard - rollnumber , nof group
-/school/:id/dashboard/settings - DONE
-/school/:id/dashboard/subjects - DONE
-/school/:id/dashboard/group - DONE
-/school/:id/dashboard/group/announcements - DONE ,aurtorized,title font
-/school/:id/dashboard/exams - DONE ,title font
-/school/:id/dashboard/exams/:examid - DONE ,label
-/school/:id/dashboard/exams/:examid/marks - DONE , rollnumber,style
-
 
 ADMIN
+
+
+
+
+assignment submit
+
+
+
+
+owner access
+loading
+outer
+subject mark
+scroll bar
+
 
 TEACHER
 
@@ -39,3 +37,5 @@ pagination
 
 members profile
 markattendance
+
+

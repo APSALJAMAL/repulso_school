@@ -28,7 +28,7 @@ export function getSubjectTabs(
       label: "Members",
       content: (
         <StudentsTabContent user={user} schoolId={schoolId} subject={subject}>
-          {user.role == "STUDENT" && (
+          {user?.role !== "STUDENT" && (
             <AddSubjectMembersModal schoolId={schoolId} subject={subject} />
           )}
         </StudentsTabContent>

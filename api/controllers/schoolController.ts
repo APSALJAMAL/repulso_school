@@ -419,6 +419,7 @@ export const getSchool = async (req: Request, res: Response) => {
         _count: {
           select: {
             subjects: true,
+            groups: true,
           },
         },
       };
@@ -715,6 +716,14 @@ export const getSubject = async (req: Request, res: Response) => {
                     },
                   },
                 },
+                schools: {
+                  where: {
+                    schoolId: req.params.id,
+                  },
+                  select: {
+                    rollNumber: true,
+                  },
+                },
               },
             },
           },
@@ -732,21 +741,18 @@ export const getSubject = async (req: Request, res: Response) => {
       ...rest,
       role: req.user.role,
       users: subject.users.map((user) => {
-        const { groups, ...rest } = user.user;
+        const { groups, schools, ...rest } = user.user;
 
-        const data = {
+        const rollNumber = schools[0]?.rollNumber ?? null;
+
+        const data: any = {
           ...rest,
           role: user.role,
+          rollNumber,
         };
 
-        if (req.user.isAdmin || isSubjectMember?.role == SubjectRole.TEACHER) {
-          Object.assign(data, {
-            groups: user.user.groups.map((group) => {
-              return {
-                ...group.group,
-              };
-            }),
-          });
+        if (req.user.isAdmin || isSubjectMember?.role === SubjectRole.TEACHER) {
+          data.groups = groups.map((g) => ({ ...g.group }));
         }
 
         return data;
@@ -755,10 +761,11 @@ export const getSubject = async (req: Request, res: Response) => {
 
     return res.status(200).json(filteredSubject);
   } catch (error: any) {
-    console.log(error.message);
-    return res.status(500).send({ message: error.message });
+    console.error("getSubject error:", error.message);
+    return res.status(500).json({ message: error.message });
   }
 };
+
 
 // @desc    Edit a subject
 // @route   PUT /api/school/:id/subject/:subjectId
@@ -2098,6 +2105,8 @@ export const getMembers = async (req: Request, res: Response) => {
         },
       },
       select: {
+        role: true,
+        rollNumber: true,
         user: {
           select: {
             id: true,
@@ -2117,28 +2126,23 @@ export const getMembers = async (req: Request, res: Response) => {
             },
           },
         },
-        role: true,
       },
     });
 
-    const filteredMembers = members.map((member) => {
-      return {
-        ...member.user,
-        role: member.role,
-        groups: member.user.groups.map((group) => {
-          return {
-            ...group.group,
-          };
-        }),
-      };
-    });
+    const filteredMembers = members.map((member) => ({
+      ...member.user,
+      role: member.role,
+      rollNumber: member.rollNumber ?? null,
+      groups: member.user.groups.map((group) => ({ ...group.group })),
+    }));
 
     return res.status(200).json(filteredMembers);
   } catch (error: any) {
-    console.log(error.message);
-    return res.status(500).send({ message: error.message });
+    console.error("❌ getMembers error:", error.message);
+    return res.status(500).json({ message: error.message });
   }
 };
+
 // get allmembers in school
 export const getAllSchoolMembers = async (req: Request, res: Response) => {
   try {
@@ -2150,6 +2154,8 @@ export const getAllSchoolMembers = async (req: Request, res: Response) => {
       },
       select: {
         role: true, // from memberOnSchools
+        rollNumber:true,
+        schoolId: true,
         user: {
           select: {
             id: true,
@@ -2175,6 +2181,7 @@ export const getAllSchoolMembers = async (req: Request, res: Response) => {
     const formatted = members.map((member) => ({
       ...member.user,
       role: member.role,
+      rollNumber: member.rollNumber,
       groups: member.user.groups.map((g) => g.group),
     }));
 
@@ -2239,6 +2246,7 @@ export const getGroupMembers = async (req: Request, res: Response) => {
                   },
                   select: {
                     role: true,
+                    rollNumber: true, // ✅ added rollNumber
                   },
                 },
               },
@@ -2257,6 +2265,7 @@ export const getGroupMembers = async (req: Request, res: Response) => {
     }
 
     let members: any[] = [];
+
     async function getGroupMembers(groupId: number) {
       const childGroups = await db.group.findMany({
         where: {
@@ -2277,6 +2286,7 @@ export const getGroupMembers = async (req: Request, res: Response) => {
                     },
                     select: {
                       role: true,
+                      rollNumber: true, // ✅ added rollNumber
                     },
                   },
                 },
@@ -2289,29 +2299,29 @@ export const getGroupMembers = async (req: Request, res: Response) => {
       for (const group of childGroups) {
         group.members.forEach((member) => {
           const isUserInArray = members.find((m) => m.id == member.user.id);
-
-          if (isUserInArray) {
-            return;
-          }
+          if (isUserInArray) return;
 
           const { schools, ...rest } = member.user;
+          const role = schools[0]?.role || null;
+          const rollNumber = schools[0]?.rollNumber || null;
 
-          const role = member.user.schools[0]?.role || null;
-
-          members.push({ ...rest, role });
+          members.push({ ...rest, role, rollNumber });
         });
+
         await getGroupMembers(group.id);
       }
     }
 
-    await group?.members.forEach((member) => {
+    // ✅ Add top-level members first
+    group.members.forEach((member) => {
       const { schools, ...rest } = member.user;
+      const role = schools[0]?.role || null;
+      const rollNumber = schools[0]?.rollNumber || null;
 
-      const role = member.user.schools[0]?.role || null;
-
-      members.push({ ...rest, role });
+      members.push({ ...rest, role, rollNumber });
     });
 
+    // ✅ Recursively add sub-group members
     await getGroupMembers(Number(req.params.groupId));
 
     const response = {
@@ -2325,6 +2335,7 @@ export const getGroupMembers = async (req: Request, res: Response) => {
     return res.status(500).send({ message: error.message });
   }
 };
+
 
 // @desc    Create a group
 // @route   POST /api/school/:id/group
@@ -2469,6 +2480,8 @@ export const getGroup = async (req: Request, res: Response) => {
                   },
                   select: {
                     role: true,
+                    rollNumber: true,
+                    schoolId: true,
                   },
                 },
               },
@@ -2478,16 +2491,20 @@ export const getGroup = async (req: Request, res: Response) => {
       },
     });
 
-    if (group?.schoolId != req.params.id) {
+    if (!group) {
+      return res.status(404).send("Group not found");
+    }
+
+    if (group.schoolId != req.params.id) {
       return res.status(403).send("Forbidden");
     }
 
     const filteredMembers = group.members.map((member) => {
       const { schools, ...rest } = member.user;
-
       return {
         ...rest,
-        role: member.user?.schools[0]?.role??null,
+        role: schools[0]?.role ?? null,
+        rollNumber: schools[0]?.rollNumber ?? null,
       };
     });
 
@@ -2495,10 +2512,11 @@ export const getGroup = async (req: Request, res: Response) => {
 
     return res.status(200).json({ ...rest, members: filteredMembers });
   } catch (error: any) {
-    console.log(error.message);
+    console.error("Error fetching group:", error.message);
     return res.status(500).send({ message: error.message });
   }
 };
+
 
 // @desc    Delete a group
 // @route   DELETE /api/school/:id/group/:groupId
@@ -3730,6 +3748,8 @@ export async function getUserById(schoolId: string, userId: string) {
         },
         select: {
           role: true,
+          rollNumber: true,
+          schoolId: true
         }
       }
     }

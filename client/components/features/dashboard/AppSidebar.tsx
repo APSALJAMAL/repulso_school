@@ -7,11 +7,11 @@ import {
   Home,
   Settings,
   LibraryBig,
-  Users,
   Podcast,
   BookCheck,
   DatabaseZap,
   TicketCheck,
+  Boxes,
 } from "lucide-react";
 
 import { SchoolSwitcher } from "@/components/features/dashboard/SchoolSwitcher";
@@ -29,6 +29,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Navlogo } from "./NavLogo";
 
 const tabs = [
   {
@@ -37,7 +38,7 @@ const tabs = [
     icon: Home,
   },
   { title: "Subjects", url: "dashboard/subjects", icon: LibraryBig },
-  { title: "Groups", url: "dashboard/group", icon: Users },
+  { title: "Groups", url: "dashboard/group", icon: Boxes },
   // { title: "Attendance", url: "dashboard/attendance", icon: Fingerprint },
   {
     title: "Announcement",
@@ -62,8 +63,10 @@ export function AppSidebar({ activeSchoolId }: Props) {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar className="" collapsible="icon">
       <SidebarHeader>
+        <Navlogo />
+
         <SchoolSwitcher activeSchoolId={activeSchoolId} />
       </SidebarHeader>
       <SidebarContent className="justify-between  ">

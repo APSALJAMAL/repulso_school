@@ -23,6 +23,7 @@ interface Student {
   id: number;
   fullName: string;
   email: string;
+  rollNumber: string;
 }
 
 interface ExamMark {
@@ -69,9 +70,16 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
           axios.get(`http://localhost:5555/api/exams/${examId}`),
         ]);
 
-        const members: Student[] = Array.isArray(groupRes.data)
-          ? groupRes.data
-          : (groupRes.data.members ?? []);
+        const members: Student[] = (
+          Array.isArray(groupRes.data)
+            ? groupRes.data
+            : (groupRes.data.members ?? [])
+        ).map((m: any) => ({
+          id: m.id,
+          fullName: m.fullName,
+          email: m.email,
+          rollNumber: m.rollNumber || "N/A",
+        }));
 
         const marks: ExamMark[] = marksRes.data.data ?? [];
         const examEntries: ExamEntry[] = entriesRes.data.entries ?? [];
@@ -84,11 +92,16 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
         const filteredMarks = marks.filter((m) => memberIds.has(m.student.id));
 
         const studentMap = new Map<number, StudentRow>();
+
         filteredMarks.forEach((m) => {
           const sid = m.student.id;
           if (!studentMap.has(sid)) {
+            const matched = members.find((mem) => mem.id === sid);
             studentMap.set(sid, {
-              student: m.student,
+              student: {
+                ...m.student,
+                rollNumber: matched?.rollNumber || "N/A",
+              },
               marks: {},
               total: 0,
               hasFailed: false,
@@ -118,28 +131,31 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
           return { ...row, total, hasFailed };
         });
 
-        // const passed = rows
-        //   .filter((r) => !r.hasFailed)
-        //   .sort((a, b) => b.total - a.total);
+        const passed = rows.filter((r) => !r.hasFailed);
+        passed.sort((a, b) => b.total - a.total);
 
         let rank = 1;
-        let lastTotal: number | null = null;
+        let lastTotal = -1;
         let lastRank = 1;
 
-        const ranked = rows.map((row) => {
-          if (row.hasFailed) return { ...row, rank: null };
-
-          const sameTotal = row.total === lastTotal;
-          const assignedRank = sameTotal ? lastRank : rank;
-
-          lastTotal = row.total;
-          lastRank = assignedRank;
+        for (let i = 0; i < passed.length; i++) {
+          const student = passed[i];
+          if (student.total === lastTotal) {
+            student.rank = lastRank;
+          } else {
+            student.rank = rank;
+            lastRank = rank;
+          }
+          lastTotal = student.total;
           rank++;
+        }
 
-          return { ...row, rank: assignedRank };
+        const finalRows = rows.map((r) => {
+          const found = passed.find((p) => p.student.id === r.student.id);
+          return found ?? r;
         });
 
-        setStudentRows(ranked);
+        setStudentRows(finalRows);
       } catch (e: any) {
         console.error(e);
         setError(e.response?.data?.message || "Failed to load data");
@@ -155,26 +171,30 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
   if (error) return <p className="py-10 text-center text-red-500">{error}</p>;
 
   return (
-    <div className="p-4 overflow-auto">
+    <div className="p-4 overflow-auto bg-white rounded-lg shadow">
       <Table>
-        <TableCaption>Exam results </TableCaption>
-        <TableHeader>
+        <TableCaption className="text-lg font-semibold pb-2">
+          Exam Results Summary
+        </TableCaption>
+        <TableHeader className="bg-gray-100 dark:bg-gray-800">
           <TableRow>
-            <TableHead>Student</TableHead>
+            <TableHead className="font-semibold">Student</TableHead>
+            <TableHead>Roll Number</TableHead>
             <TableHead>Email</TableHead>
             {entries.map((e) => (
               <TableHead key={e.subjectId}>
                 {e.subject.name}
                 <div className="text-xs text-muted-foreground">
-                  (Max: {e.maxMarks}) (Min: {e.minMarks})
+                  (Max: {e.maxMarks}, Min: {e.minMarks})
                 </div>
               </TableHead>
             ))}
             <TableHead>
               Total
               <div className="text-xs text-muted-foreground">
-                (Max: {totalMax})<br />
-                (Min: {totalMin})
+                Max: {totalMax}
+                <br />
+                Min: {totalMin}
               </div>
             </TableHead>
             <TableHead>Rank</TableHead>
@@ -182,9 +202,17 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
         </TableHeader>
 
         <TableBody>
-          {studentRows.map((row) => (
-            <TableRow key={row.student.id}>
-              <TableCell>{row.student.fullName}</TableCell>
+          {studentRows.map((row, idx) => (
+            <TableRow
+              key={row.student.id}
+              className={idx % 2 === 0 ? "bg-gray-50" : ""}
+            >
+              <TableCell className="font-medium">
+                {row.student.fullName}
+              </TableCell>
+              <TableCell className="font-medium">
+                {row.student.rollNumber || "N/A"}
+              </TableCell>
               <TableCell>{row.student.email}</TableCell>
               {entries.map((e) => {
                 const m = row.marks[e.subjectId];
@@ -192,7 +220,7 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
                 return (
                   <TableCell
                     key={e.subjectId}
-                    className={isLow ? "text-red-500 font-semibold" : ""}
+                    className={isLow ? "text-red-600 font-semibold" : ""}
                   >
                     {typeof m === "number" ? m : "-"}
                   </TableCell>
@@ -200,12 +228,14 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
               })}
               <TableCell
                 className={
-                  row.hasFailed ? "text-red-500 font-semibold" : "font-semibold"
+                  row.hasFailed ? "text-red-600 font-semibold" : "font-semibold"
                 }
               >
                 {row.total}
               </TableCell>
-              <TableCell className="font-bold">{row.rank ?? "-"}</TableCell>
+              <TableCell className="font-bold text-center">
+                {row.rank ?? "-"}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -28,6 +28,7 @@ export interface User {
   role: string; // e.g., "STUDENT", "TEACHER"
   groups: Group[];
   schoolId?: string;
+  rollNumber?: string;
 }
 
 // Inside @/types/custom.ts

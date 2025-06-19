@@ -19,6 +19,7 @@ const router = express.Router();
 // Exams
 router.post("/", createExam);
 router.get("/", getAllExams);
+
 router.get("/:id", getExamById);
 router.put("/:id", updateExam);
 router.delete("/:id", deleteExam);

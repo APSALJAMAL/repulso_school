@@ -117,46 +117,50 @@ export default function AttendanceList({ groupId, schoolId }: Props) {
       ) : attendances.length === 0 ? (
         <p>No attendance records found.</p>
       ) : (
-        attendances.map((att) => (
-          <Card
-            key={att.id}
-            className="cursor-pointer hover:shadow-md transition"
-            onClick={() => handleCardClick(att.id)}
-          >
-            <CardContent className="py-4 space-y-2">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-lg font-semibold">{att.title}</h3>
-                <p className="text-muted-foreground text-sm">
-                  Attendance ID: {att.id}
-                </p>
-                <p className="text-sm text-gray-600">{att.note || "No note"}</p>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {attendances.map((att) => (
+            <Card
+              key={att.id}
+              className="cursor-pointer hover:shadow-md transition h-full"
+              onClick={() => handleCardClick(att.id)}
+            >
+              <CardContent className="py-4 space-y-2 flex flex-col justify-between h-full">
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-lg font-semibold">{att.title}</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Attendance ID: {att.id}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {att.note || "No note"}
+                  </p>
+                </div>
 
-              <div className="flex gap-2 pt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEdit(att);
-                  }}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(att.id);
-                  }}
-                >
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))
+                <div className="flex gap-2 pt-2 mt-auto">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEdit(att);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(att.id);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {selected && (

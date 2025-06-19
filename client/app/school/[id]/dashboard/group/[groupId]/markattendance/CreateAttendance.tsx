@@ -47,37 +47,48 @@ export default function CreateAttendance({ groupId }: Props) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-md p-4 border rounded space-y-4"
+      className="w-full max-w-xl rounded-2xl border border-border bg-background p-6 shadow-sm space-y-5 transition-all"
     >
-      <div>
-        <Label htmlFor="title">Title</Label>
+      <div className="space-y-2">
+        <Label htmlFor="title" className="text-base font-medium text-primary">
+          Attendance Title
+        </Label>
         <Input
-          type="text"
           id="title"
+          type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Science Class - June 15"
           required
+          className="focus-visible:ring-primary"
         />
       </div>
 
-      <div>
-        <Label htmlFor="note">Note</Label>
+      <div className="space-y-2">
+        <Label htmlFor="note" className="text-base font-medium text-primary">
+          Optional Note
+        </Label>
         <Textarea
           id="note"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Optional note..."
+          placeholder="Enter a description or note..."
+          rows={4}
+          className="resize-none focus-visible:ring-primary"
         />
       </div>
 
-      <Button type="submit" disabled={loading}>
+      <Button
+        type="submit"
+        disabled={loading}
+        className="w-full font-semibold tracking-wide"
+      >
         {loading ? "Creating..." : "Create Attendance"}
       </Button>
 
       {message && (
         <p
-          className={`text-sm ${
+          className={`text-sm font-medium ${
             message.includes("success") ? "text-green-600" : "text-red-600"
           }`}
         >
