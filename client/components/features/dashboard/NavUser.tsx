@@ -1,6 +1,11 @@
 "use client";
 
-import { ChevronsUpDown, CircleUserRound, LogOut } from "lucide-react";
+import {
+  ChevronsUpDown,
+  CircleUserRound,
+  FileUser,
+  LogOut,
+} from "lucide-react";
 import { deleteCookie } from "cookies-next";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -34,6 +39,13 @@ export function NavUser({ SchoolId }: NavUserProps) {
   const router = useRouter();
   const { isMobile } = useSidebar();
   const handleProfileClick = () => {
+    if (user && SchoolId) {
+      router.push(`/school/${SchoolId}/profile`);
+    } else {
+      console.error("User ID or School ID missing.");
+    }
+  };
+  const handledetailsClick = () => {
     if (user && SchoolId) {
       router.push(`/school/${SchoolId}/profile/${user.id}/details`);
     } else {
@@ -109,6 +121,11 @@ export function NavUser({ SchoolId }: NavUserProps) {
             <DropdownMenuItem onClick={handleProfileClick}>
               <CircleUserRound className="mr-2 h-4 w-4" />
               Profile
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handledetailsClick}>
+              <FileUser className="mr-2 h-4 w-4" />
+              Details
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

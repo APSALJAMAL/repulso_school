@@ -291,9 +291,9 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
               key={row.student.id}
               className={`transition-all ${
                 idx % 2 === 0
-                  ? "bg-gray-50 dark:bg-gray-800/40"
+                  ? "bg-white dark:bg-gray-800/40"
                   : "bg-white dark:bg-gray-900"
-              } hover:bg-blue-50 dark:hover:bg-blue-900/20`}
+              } hover:bg-emerald-50 dark:hover:bg-blue-900/20`}
             >
               <TableCell className="font-medium">
                 {row.student.fullName}

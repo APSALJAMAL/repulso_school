@@ -3,9 +3,7 @@ social media
 
 
 
-SUPER ADMIN
 
-ADMIN
 
 
 
@@ -17,7 +15,6 @@ assignment submit
 
 
 loading
-outer
 subject mark
 
 protect route
@@ -32,15 +29,14 @@ studentpage
 
 
 routes
-attendance teacher,box,sort,layout,backk button
+
 separate admin test
 
 
-subject nav
-pagination
 
-members profile
-markattendance
+
+
+
 
 ///////////////////////////////
 

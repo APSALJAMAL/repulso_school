@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,16 +22,18 @@ import {
 } from "date-fns";
 
 type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE" | "HOLIDAY" | "ON_DUTY";
+type RoleType = "STUDENT" | "TEACHER";
 
 interface Member {
   id: number;
   name: string;
   rollNumber: string;
+  role: RoleType;
 }
 interface StatusEntry {
   userId: number;
   status: AttendanceStatus;
-  date: string; // yyyy-MM-dd
+  date: string;
 }
 
 interface Props {
@@ -40,11 +43,12 @@ interface Props {
 }
 
 const statusColors: Record<AttendanceStatus, string> = {
-  PRESENT: "bg-green-200 text-green-800",
-  ABSENT: "bg-red-200 text-red-800",
-  LATE: "bg-yellow-200 text-yellow-800",
-  HOLIDAY: "bg-blue-200 text-blue-800",
-  ON_DUTY: "bg-purple-200 text-purple-800",
+  PRESENT: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200",
+  ABSENT: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200",
+  LATE: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200",
+  HOLIDAY: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200",
+  ON_DUTY:
+    "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200",
 };
 
 const isPresentStatus = (status?: AttendanceStatus) =>
@@ -55,9 +59,12 @@ export default function MonthlyAttendance({
   attendanceId,
   schoolId,
 }: Props) {
+  const router = useRouter();
   const [monthStart, setMonthStart] = useState(() => startOfMonth(new Date()));
   const [members, setMembers] = useState<Member[]>([]);
   const [entries, setEntries] = useState<StatusEntry[]>([]);
+  const [filter, setFilter] = useState<"ALL" | "STUDENT" | "TEACHER">("ALL");
+  const [sortBy, setSortBy] = useState<"NAME" | "ROLL">("NAME");
 
   const dates = eachDayOfInterval({
     start: monthStart,
@@ -75,6 +82,7 @@ export default function MonthlyAttendance({
             id: m.id,
             name: m.fullName,
             rollNumber: m.rollNumber || "N/A",
+            role: m.role || "STUDENT", // mock fallback
           }))
         : [];
       setMembers(formatted);
@@ -118,7 +126,7 @@ export default function MonthlyAttendance({
   };
 
   const prevMonth = () => setMonthStart((d) => addMonths(d, -1));
-  const nextMonth = () => setMonthStart((d) => addMonths(d, +1));
+  const nextMonth = () => setMonthStart((d) => addMonths(d, 1));
 
   useEffect(() => {
     fetchMembers();
@@ -128,54 +136,121 @@ export default function MonthlyAttendance({
     fetchEntries();
   }, [attendanceId, monthStart]);
 
+  const filteredMembers = members
+    .filter((m) => (filter === "ALL" ? true : m.role === filter))
+    .sort((a, b) => {
+      return sortBy === "NAME"
+        ? a.name.localeCompare(b.name)
+        : a.rollNumber.localeCompare(b.rollNumber);
+    });
+
   return (
-    <div className="space-y-4 overflow-x-auto p-4">
-      <div className="flex justify-between items-center">
-        <Button variant="outline" onClick={prevMonth}>
-          ←
+    <div className="space-y-6 p-6 bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border">
+      {/* Header & Back */}
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <Button
+          onClick={() => router.back()}
+          variant="outline"
+          className="rounded-md"
+        >
+          ← Back
         </Button>
-        <h2 className="text-lg font-semibold">
-          {format(monthStart, "MMM yyyy")}
-        </h2>
-        <Button variant="outline" onClick={nextMonth}>
-          →
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={prevMonth}>
+            ← Previous
+          </Button>
+          <h2 className="text-xl font-bold tracking-wide text-primary">
+            {format(monthStart, "MMMM yyyy")}
+          </h2>
+          <Button variant="outline" onClick={nextMonth}>
+            Next →
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => setFilter("ALL")}
+            variant={filter === "ALL" ? "default" : "outline"}
+          >
+            All
+          </Button>
+          <Button
+            onClick={() => setFilter("STUDENT")}
+            variant={filter === "STUDENT" ? "default" : "outline"}
+          >
+            Students
+          </Button>
+          <Button
+            onClick={() => setFilter("TEACHER")}
+            variant={filter === "TEACHER" ? "default" : "outline"}
+          >
+            Teachers
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm">Sort By:</label>
+          <Select value={sortBy} onValueChange={(val) => setSortBy(val as any)}>
+            <SelectTrigger className="w-32 h-8 text-xs rounded-md border">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="text-xs">
+              <SelectItem value="NAME">Name</SelectItem>
+              <SelectItem value="ROLL">Roll Number</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <Card className="overflow-auto">
+      {/* Legend */}
+      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+        {Object.entries(statusColors).map(([key, value]) => (
+          <div key={key} className={`px-2 py-1 rounded ${value}`}>
+            {key}
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      <Card className="overflow-x-auto rounded-xl">
         <CardContent className="p-0">
-          <table className="min-w-full table-fixed border-collapse">
-            <thead className="bg-muted">
+          <table className="min-w-full border-collapse text-sm">
+            <thead className="bg-muted dark:bg-zinc-800 sticky top-0 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               <tr>
-                <th className="sticky left-0 bg-muted p-2 border">Id</th>
-                <th className="sticky left-0 bg-muted p-2 border">Member</th>
-                <th className="sticky left-0 bg-muted p-2 border">
-                  Roll Number
+                <th className="sticky left-0 z-20 bg-muted dark:bg-zinc-800 px-2 py-2 border">
+                  ID
                 </th>
+                <th className="sticky left-0 z-20 bg-muted dark:bg-zinc-800 px-2 py-2 border">
+                  Member
+                </th>
+                <th className="sticky left-0 z-20 bg-muted dark:bg-zinc-800 px-2 py-2 border">
+                  Roll #
+                </th>
+                <th className="px-2 py-2 border">Role</th>
                 {dates.map((d) => (
                   <th
                     key={d.toISOString()}
-                    className="p-1 text-xs text-center border"
+                    className="px-1 py-1 text-center border"
                   >
                     {format(d, "d")}
                   </th>
                 ))}
-                <th className="p-1 text-xs text-center border bg-muted">%</th>
+                <th className="px-1 py-1 border bg-muted">%</th>
               </tr>
             </thead>
-
             <tbody>
-              {members.map((member) => (
-                <tr key={member.id}>
-                  <td className="sticky left-0 bg-background p-2 border text-sm">
+              {filteredMembers.map((member) => (
+                <tr key={member.id} className="hover:bg-muted/50 transition">
+                  <td className="sticky left-0 bg-background dark:bg-zinc-900 px-2 py-2 border">
                     {member.id}
                   </td>
-                  <td className="sticky left-0 bg-background p-2 border text-sm">
+                  <td className="sticky left-0 bg-background dark:bg-zinc-900 px-2 py-2 border">
                     {member.name}
                   </td>
-                  <td className="sticky left-0 bg-background p-2 border text-sm">
-                    {member.rollNumber || "N/A"}
+                  <td className="sticky left-0 bg-background dark:bg-zinc-900 px-2 py-2 border">
+                    {member.rollNumber}
                   </td>
+                  <td className="text-center border">{member.role}</td>
                   {dates.map((d) => {
                     const iso = format(d, "yyyy-MM-dd");
                     const entry = entries.find(
@@ -187,7 +262,7 @@ export default function MonthlyAttendance({
                     return (
                       <td
                         key={iso}
-                        className={`p-1 border text-center ${
+                        className={`p-1 text-center border ${
                           status ? statusColors[status] : ""
                         }`}
                       >
@@ -197,7 +272,7 @@ export default function MonthlyAttendance({
                             handleStatusChange(member.id, iso, val)
                           }
                         >
-                          <SelectTrigger className="w-full py-0 h-8 text-xs">
+                          <SelectTrigger className="w-full h-8 text-xs rounded-md bg-background border hover:ring-1 ring-primary">
                             <SelectValue placeholder="—" />
                           </SelectTrigger>
                           <SelectContent className="text-xs">
@@ -217,7 +292,7 @@ export default function MonthlyAttendance({
                       </td>
                     );
                   })}
-                  <td className="font-semibold text-sm border text-center bg-gray-100">
+                  <td className="font-bold border text-center bg-emerald-50 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
                     {Math.round(
                       (dates.filter((d) => {
                         const iso = format(d, "yyyy-MM-dd");
@@ -233,29 +308,6 @@ export default function MonthlyAttendance({
                   </td>
                 </tr>
               ))}
-
-              <tr className="bg-muted font-medium text-xs text-center">
-                <td colSpan={3}>Day%</td>
-                {dates.map((d) => {
-                  const iso = format(d, "yyyy-MM-dd");
-                  const presentCount = members.filter((m) => {
-                    const entry = entries.find(
-                      (e) => e.userId === m.id && e.date === iso,
-                    );
-                    return isPresentStatus(entry?.status);
-                  }).length;
-
-                  const percentage =
-                    Math.round((presentCount / members.length) * 100) || 0;
-
-                  return (
-                    <td key={iso} className="border">
-                      {percentage}%
-                    </td>
-                  );
-                })}
-                <td className="border bg-muted" />
-              </tr>
             </tbody>
           </table>
         </CardContent>
