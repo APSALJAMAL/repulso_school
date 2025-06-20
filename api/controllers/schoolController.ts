@@ -552,15 +552,18 @@ export const getSchools = async (req: Request, res: Response) => {
 export const createSubject = async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
+    const schoolId = req.params.id;
+    const userId = (req as any).user?.id; // Adjust type depending on your auth middleware
 
-    if (!name) {
-      return res.status(400).send("Missing required fields");
+    if (!name || !schoolId || !userId) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     const subject = await db.subject.create({
       data: {
         name,
-        schoolId: req.params.id,
+        schoolId,
+        userId, // newly added user ownership
         topics: {
           create: {
             name: "Topic 1",
@@ -571,10 +574,11 @@ export const createSubject = async (req: Request, res: Response) => {
 
     return res.status(201).json(subject);
   } catch (error: any) {
-    console.log(error.message);
-    return res.status(500).send({ message: error.message });
+    console.error("Error creating subject:", error.message);
+    return res.status(500).json({ message: "Server error: " + error.message });
   }
 };
+
 
 // @desc    Get subjects
 // @route   GET /api/school/:id/subject
@@ -583,10 +587,16 @@ export const getSubjects = async (req: Request, res: Response) => {
   try {
     let subjects = [];
 
-    if (req.user.isAdmin) {
+    const isSuperAdmin = req.user.role === "SUPER_ADMIN"; // example, or update this check
+    const isAdmin = req.user.role === "ADMIN";
+
+    const filterByUser = !isSuperAdmin && req.query.userId;
+
+    if (isSuperAdmin || isAdmin) {
       subjects = await db.subject.findMany({
         where: {
           schoolId: req.params.id,
+          ...(filterByUser && { userId: Number(req.query.userId) }), // ✅ Apply userId filter for admins
         },
         include: {
           users: {
@@ -609,17 +619,15 @@ export const getSubjects = async (req: Request, res: Response) => {
 
       subjects = subjects.map((subject) => {
         const { users, ...rest } = subject;
-
         return {
           ...rest,
-          teachers: subject.users.map((teacher) => {
-            return {
-              ...teacher.user,
-            };
-          }),
+          teachers: users.map((teacher) => ({
+            ...teacher.user,
+          })),
         };
       });
     } else {
+      // not admin or superadmin
       const subjectsNotFiltered = await db.memberOnSubject.findMany({
         where: {
           schoolId: req.params.id,
@@ -634,6 +642,7 @@ export const getSubjects = async (req: Request, res: Response) => {
               schoolId: true,
               createdAt: true,
               updatedAt: true,
+              userId: true,
               users: {
                 where: {
                   role: Role.TEACHER,
@@ -656,14 +665,11 @@ export const getSubjects = async (req: Request, res: Response) => {
 
       subjects = subjectsNotFiltered.map((subject) => {
         const { users, ...rest } = subject.subject;
-
         return {
           ...rest,
-          teachers: subject.subject.users.map((teacher) => {
-            return {
-              ...teacher.user,
-            };
-          }),
+          teachers: users.map((teacher) => ({
+            ...teacher.user,
+          })),
         };
       });
     }
@@ -674,6 +680,7 @@ export const getSubjects = async (req: Request, res: Response) => {
     return res.status(500).send({ message: error.message });
   }
 };
+
 
 // @desc    Get a subject
 // @route   GET /api/school/:id/subject/:subjectId
@@ -2198,18 +2205,20 @@ export const getAllSchoolMembers = async (req: Request, res: Response) => {
 // @access  Private
 export const getGroups = async (req: Request, res: Response) => {
   try {
+    const { id: schoolId } = req.params;
+    const { role, id: userId } = req.user; // assuming `req.user` is populated by your auth middleware
+
+    console.log("getGroups debug:", { schoolId, role, userId });
+
     const groups = await db.group.findMany({
       where: {
-        schoolId: req.params.id,
+        schoolId,
+        ...(role !== "SUPER_ADMIN" && { userId }), // only apply userId if not super admin
       },
       include: {
-        
         _count: {
           select: {
             members: true,
-            
-            
-         
           },
         },
       },
@@ -2217,10 +2226,12 @@ export const getGroups = async (req: Request, res: Response) => {
 
     return res.status(200).json(groups);
   } catch (error: any) {
-    console.log(error.message);
-    return res.status(500).send({ message: error.message });
+    console.error("getGroups error:", error.message);
+    return res.status(500).json({ message: error.message });
   }
 };
+
+
 
 // @desc    Get all group members
 // @route   GET /api/school/:id/group/:groupId/member
@@ -2353,6 +2364,7 @@ export const createGroup = async (req: Request, res: Response) => {
         name,
         parentId,
         schoolId: req.params.id,
+        userId: req.user.id,
       },
     });
 

@@ -8,21 +8,29 @@ const prisma = new PrismaClient();
  */
 export const createExam = async (req: Request, res: Response) => {
   try {
-    const { name, batch, groupId } = req.body;
+    const { name, batch, groupId, schoolId } = req.body;
+if (!req.user?.id || !schoolId) {
+  return res.status(401).json({ error: "Unauthorized: missing user or school info" });
+}
 
-    const exam = await prisma.exam.create({
-      data: {
-        name,
-        batch,
-        groupId,
-      },
-    });
+const exam = await prisma.exam.create({
+  data: {
+    name,
+    batch,
+    groupId,
+    userId: req.user.id,
+    schoolId,
+  },
+});
+
 
     res.status(201).json(exam);
   } catch (error) {
+    console.error("Create Exam Error:", error);
     res.status(500).json({ error: "Failed to create exam", details: error });
   }
 };
+
 
 /**
  * Create Exam Entry
@@ -242,28 +250,36 @@ export const getExamsByUserId =  async (req: Request, res: Response) => {
   }
 };
 
-// // exam.controller.ts
-// export const getExamsBySchool = async (req: Request, res: Response) => {
-//   const schoolId = req.params.schoolId; // or req.query.schoolId
+export const getExamsBySchool = async (req: Request, res: Response) => {
+  try {
+    const { schoolId } = req.params;
 
-//   try {
-//     const exams = await prisma.exam.findMany({
-//       where: {
-//         group: {
-//           schoolId: schoolId, // Filter by group’s schoolId
-//         },
-//       },
-//       include: {
-//         group: true,
-//       },
-//       orderBy: {
-//         createdAt: "desc",
-//       },
-//     });
+    if (!schoolId) {
+      return res.status(400).json({ error: "School ID is required" });
+    }
 
-//     res.status(200).json(exams);
-//   } catch (error) {
-//     res.status(500).json({ error: "Failed to fetch exams." });
-//   }
-// };
+    const exams = await prisma.exam.findMany({
+      where: {
+        schoolId,
+      },
+      include: {
+        group: true,
+        user: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    res.json(exams);
+  } catch (error) {
+    console.error("getExamsBySchool error:", error);
+    res.status(500).json({ error: "Failed to fetch exams" });
+  }
+};
+
 

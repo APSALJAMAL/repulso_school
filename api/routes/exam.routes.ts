@@ -9,18 +9,22 @@ import {
   updateExamEntry,
   deleteExamEntry,
   getExamsByUserId,
+  getExamsBySchool,
 } from "../controllers/exam.controller";
 import db from "../lib/db";
+import { protect } from "../middleware/authMiddleware";
+import { access } from "../middleware/accessMiddleware";
 
 
 
 const router = express.Router();
 
 // Exams
-router.post("/", createExam);
+router.post("/",protect,access,createExam);
 router.get("/", getAllExams);
 
 router.get("/:id", getExamById);
+router.get("/school/:schoolId", getExamsBySchool);
 router.put("/:id", updateExam);
 router.delete("/:id", deleteExam);
 router.get("/user/:userId", getExamsByUserId);

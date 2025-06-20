@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash } from "lucide-react";
+import { getCookie } from "cookies-next";
 interface AnnouncementBoard {
   id: number;
   groupId: number;
@@ -37,10 +38,15 @@ export default function AnnouncementsPage() {
 
   const handleCreate = async () => {
     if (!groupId.trim()) return;
+    const rawToken = getCookie("token");
+    const token = typeof rawToken === "string" ? rawToken : "";
 
     await fetch("http://localhost:5555/api/announcements/board", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
       body: JSON.stringify({ groupId: Number(groupId) }),
     });
 

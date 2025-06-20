@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import useSWR from "swr";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Card,
@@ -15,24 +16,61 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, CalendarCheck, FileText, Trash, Pencil } from "lucide-react";
 import { Exam } from "@/types/exam";
+import { getCookie } from "cookies-next";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ExamsPage() {
   const params = useParams();
-  const id = params?.id as string;
+  const schoolId = params?.id as string;
+
   const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [currentUser, setCurrentUser] = useState<{
+    id: number;
+    role: string;
+  } | null>(null);
+
+  // 🔐 Load current user from /api/me
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const token = await getCookie("token");
+
+        if (!token) throw new Error("Missing token");
+
+        const res = await fetch("http://localhost:5555/api/me", {
+          headers: { Authorization: token },
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText || "Failed to fetch user");
+        }
+
+        const data = await res.json();
+
+        const role =
+          data?.schools?.find((s: any) => s.schoolId === schoolId)?.role ||
+          "USER";
+
+        setCurrentUser({ id: data.id, role });
+      } catch (err) {
+        console.error("❌ Failed to load user", err);
+      }
+    };
+
+    if (schoolId) loadUser();
+  }, [schoolId]);
 
   const {
     data: exams = [],
     isLoading,
     mutate,
   } = useSWR<Exam[]>(
-    id ? `http://localhost:5555/api/exams?schoolId=${id}` : null,
+    schoolId ? `http://localhost:5555/api/exams/school/${schoolId}` : null,
     fetcher,
     {
       onError: () => toast.error("❌ Failed to fetch exams"),
-      onSuccess: () => toast.success("✅ Exams list updated"),
     },
   );
 
@@ -49,13 +87,19 @@ export default function ExamsPage() {
       if (!res.ok) throw new Error();
 
       toast.success("🗑️ Exam deleted successfully");
-      mutate(); // revalidate data
+      mutate(); // revalidate
     } catch {
       toast.error("❌ Error deleting exam");
     } finally {
       setLoadingId(null);
     }
   };
+
+  // ✅ Role-based filter
+  const filteredExams =
+    currentUser?.role === "ADMIN"
+      ? exams.filter((exam) => exam.user?.id === currentUser.id)
+      : exams;
 
   return (
     <div className="p-6 space-y-10">
@@ -73,7 +117,7 @@ export default function ExamsPage() {
           asChild
           className="bg-primary text-white hover:opacity-90 transition"
         >
-          <Link href={`/school/${id}/dashboard/exams/create`}>
+          <Link href={`/school/${schoolId}/dashboard/exams/create`}>
             <Plus className="w-5 h-5 mr-2" />
             Create Exam
           </Link>
@@ -81,13 +125,13 @@ export default function ExamsPage() {
       </div>
 
       {/* Exams List */}
-      {isLoading ? (
+      {isLoading || !currentUser ? (
         <div className="text-center text-muted-foreground">
           Loading exams...
         </div>
-      ) : exams.length > 0 ? (
+      ) : filteredExams.length > 0 ? (
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {exams.map((exam) => (
+          {filteredExams.map((exam) => (
             <Card
               key={exam.id}
               className="border rounded-2xl shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md bg-white dark:bg-zinc-900"
@@ -106,7 +150,7 @@ export default function ExamsPage() {
                   </div>
                   <div className="flex gap-2 mt-1">
                     <Link
-                      href={`/school/${id}/dashboard/exams/${exam.id}/edit`}
+                      href={`/school/${schoolId}/dashboard/exams/${exam.id}/edit`}
                       className="flex items-center gap-1 hover:text-primary text-sm"
                     >
                       <Pencil size={16} />
@@ -124,7 +168,7 @@ export default function ExamsPage() {
 
               <CardContent className="pt-0 space-y-3">
                 <Link
-                  href={`/school/${id}/dashboard/exams/${exam.id}`}
+                  href={`/school/${schoolId}/dashboard/exams/${exam.id}`}
                   className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                 >
                   <CalendarCheck size={16} />
@@ -132,7 +176,7 @@ export default function ExamsPage() {
                 </Link>
 
                 <Link
-                  href={`/school/${id}/dashboard/exams/${exam.id}/marks`}
+                  href={`/school/${schoolId}/dashboard/exams/${exam.id}/marks`}
                   className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
                 >
                   <FileText size={16} />

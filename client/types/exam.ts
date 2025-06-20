@@ -1,6 +1,7 @@
 export type SessionType = "FN" | "AN";
 
 export interface Exam {
+  user: any;
   group: any;
   id: number;
   name: string;

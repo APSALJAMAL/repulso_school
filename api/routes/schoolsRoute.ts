@@ -105,7 +105,7 @@ router.get("/school/:id/member", protect, admin, getMembers);
 router.get("/school/:id/allschoolmember", protect, getAllSchoolMembers);
 
 router.post("/school/:id/group", protect, admin, createGroup);
-router.get("/school/:id/group",  getGroups);
+router.get("/school/:id/group",protect,access,  getGroups);
 router.get("/school/:id/group/:groupId",   getGroup);
 router.put("/school/:id/group/:groupId", protect, admin, editGroup);
 router.delete("/school/:id/group/:groupId", protect, admin, deleteGroup);
