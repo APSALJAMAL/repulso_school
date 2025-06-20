@@ -8,7 +8,7 @@ export default function ConsolePage() {
       <aside className="bg-primary relative hidden h-full w-1/2 flex-col items-start justify-between overflow-hidden p-10 lg:flex">
         <div className="text-primary-foreground flex items-center gap-2 self-start py-2 text-lg font-semibold">
           <PenwwwsIcon />
-          <span>Repulso</span>
+          <span>REPULSO</span>
         </div>
         <div className="flex flex-col gap-4">
           <p className="text-primary-50/50 text-sm">

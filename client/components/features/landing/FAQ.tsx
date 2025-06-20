@@ -17,10 +17,10 @@ export default function FAQ() {
         <Accordion className="border-b md:w-[500px]" type="single" collapsible>
           <AccordionItem value="item-1" className="border-b">
             <AccordionTrigger className="text-xl font-semibold">
-              What is Penwwws?
+              What is REPULSO?
             </AccordionTrigger>
             <AccordionContent className="pb-4 pl-7">
-              Penwwws is an all-in-one platform to manage students, staff,
+              REPULSO is an all-in-one platform to manage students, staff,
               classes, and school operations.
             </AccordionContent>
           </AccordionItem>
@@ -30,7 +30,7 @@ export default function FAQ() {
               Is it free?
             </AccordionTrigger>
             <AccordionContent className="pb-4 pl-7">
-              Penwwws has a free plan to explore and get started.
+              REPULSO has a free plan to explore and get started.
             </AccordionContent>
           </AccordionItem>
           <AccordionItem value="item-3" className="border-b">
@@ -38,7 +38,7 @@ export default function FAQ() {
               Is it easy to use?
             </AccordionTrigger>
             <AccordionContent className="pb-4 pl-7">
-              Penwwws is designed to be user-friendly and intuitive, making it
+              REPULSO is designed to be user-friendly and intuitive, making it
               easy for anyone to use.
             </AccordionContent>
           </AccordionItem>

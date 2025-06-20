@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ArrowUp, ArrowDown } from "lucide-react";
 
 interface Props {
   examId: number;
@@ -52,11 +53,40 @@ interface StudentRow {
 export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [studentRows, setStudentRows] = useState<StudentRow[]>([]);
   const [entries, setEntries] = useState<ExamEntry[]>([]);
-  const [totalMax, setTotalMax] = useState(0);
-  const [totalMin, setTotalMin] = useState(0);
+  const [sortKey, setSortKey] = useState<string>("rank");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortOrder("asc");
+    }
+  };
+
+  const getSortIcon = (key: string) => (
+    <span className="ml-1 flex flex-col text-xs">
+      <ArrowUp
+        size={12}
+        className={
+          sortKey === key && sortOrder === "asc"
+            ? "text-primary"
+            : "text-gray-400"
+        }
+      />
+      <ArrowDown
+        size={12}
+        className={
+          sortKey === key && sortOrder === "desc"
+            ? "text-primary"
+            : "text-gray-400"
+        }
+      />
+    </span>
+  );
 
   useEffect(() => {
     async function load() {
@@ -70,25 +100,26 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
           axios.get(`http://localhost:5555/api/exams/${examId}`),
         ]);
 
-        const members: Student[] = (
+        const members = (
           Array.isArray(groupRes.data)
             ? groupRes.data
             : (groupRes.data.members ?? [])
-        ).map((m: any) => ({
-          id: m.id,
-          fullName: m.fullName,
-          email: m.email,
-          rollNumber: m.rollNumber || "N/A",
-        }));
+        )
+          .filter(
+            (m: any) => m.role === "STUDENT" || m.user?.role === "STUDENT",
+          )
+          .map((m: any) => ({
+            id: m.user?.id ?? m.id,
+            fullName: m.user?.fullName ?? m.fullName,
+            email: m.user?.email ?? m.email,
+            rollNumber: m.user?.rollNumber ?? m.rollNumber ?? "-",
+          }));
 
         const marks: ExamMark[] = marksRes.data.data ?? [];
         const examEntries: ExamEntry[] = entriesRes.data.entries ?? [];
-
         setEntries(examEntries);
-        setTotalMax(examEntries.reduce((sum, e) => sum + e.maxMarks, 0));
-        setTotalMin(examEntries.reduce((sum, e) => sum + (e.minMarks ?? 0), 0));
 
-        const memberIds = new Set(members.map((m) => m.id));
+        const memberIds = new Set(members.map((m: { id: any }) => m.id));
         const filteredMarks = marks.filter((m) => memberIds.has(m.student.id));
 
         const studentMap = new Map<number, StudentRow>();
@@ -96,7 +127,9 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
         filteredMarks.forEach((m) => {
           const sid = m.student.id;
           if (!studentMap.has(sid)) {
-            const matched = members.find((mem) => mem.id === sid);
+            const matched = members.find(
+              (mem: { id: number }) => mem.id === sid,
+            );
             studentMap.set(sid, {
               student: {
                 ...m.student,
@@ -120,29 +153,23 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
             const mark = row.marks[e.subjectId];
             if (typeof mark === "number") {
               total += mark;
-              if (mark < e.minMarks) {
-                hasFailed = true;
-              }
-            } else {
-              hasFailed = true;
-            }
+              if (mark < e.minMarks) hasFailed = true;
+            } else hasFailed = true;
           }
 
           return { ...row, total, hasFailed };
         });
 
-        const passed = rows.filter((r) => !r.hasFailed);
-        passed.sort((a, b) => b.total - a.total);
+        const passed = rows
+          .filter((r) => !r.hasFailed)
+          .sort((a, b) => b.total - a.total);
+        let rank = 1,
+          lastTotal = -1,
+          lastRank = 1;
 
-        let rank = 1;
-        let lastTotal = -1;
-        let lastRank = 1;
-
-        for (let i = 0; i < passed.length; i++) {
-          const student = passed[i];
-          if (student.total === lastTotal) {
-            student.rank = lastRank;
-          } else {
+        for (const student of passed) {
+          if (student.total === lastTotal) student.rank = lastRank;
+          else {
             student.rank = rank;
             lastRank = rank;
           }
@@ -150,11 +177,9 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
           rank++;
         }
 
-        const finalRows = rows.map((r) => {
-          const found = passed.find((p) => p.student.id === r.student.id);
-          return found ?? r;
-        });
-
+        const finalRows = rows.map(
+          (r) => passed.find((p) => p.student.id === r.student.id) ?? r,
+        );
         setStudentRows(finalRows);
       } catch (e: any) {
         console.error(e);
@@ -167,52 +192,113 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
     load();
   }, [examId, schoolId, groupId]);
 
+  const sortedRows = [...studentRows].sort((a, b) => {
+    let valA: any;
+    let valB: any;
+
+    if (sortKey.startsWith("subject-")) {
+      const subjectId = parseInt(sortKey.split("-")[1]);
+      valA = a.marks[subjectId] ?? 0;
+      valB = b.marks[subjectId] ?? 0;
+    } else if (sortKey === "total") {
+      valA = a.total;
+      valB = b.total;
+    } else if (sortKey === "rank") {
+      valA = a.rank ?? Infinity;
+      valB = b.rank ?? Infinity;
+    } else {
+      valA = a.student[sortKey as keyof Student] ?? "";
+      valB = b.student[sortKey as keyof Student] ?? "";
+    }
+
+    if (typeof valA === "string") valA = valA.toLowerCase();
+    if (typeof valB === "string") valB = valB.toLowerCase();
+
+    if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+    if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
+
   if (loading) return <p className="py-10 text-center">Loading...</p>;
   if (error) return <p className="py-10 text-center text-red-500">{error}</p>;
 
   return (
-    <div className="p-4 overflow-auto bg-white rounded-lg shadow">
+    <div className="relative overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-900 p-4">
       <Table>
         <TableCaption className="text-lg font-semibold pb-2">
           Exam Results Summary
         </TableCaption>
-        <TableHeader className="bg-gray-100 dark:bg-gray-800">
+        <TableHeader className="sticky top-0 bg-gray-100 dark:bg-gray-800 z-10">
           <TableRow>
-            <TableHead className="font-semibold">Student</TableHead>
-            <TableHead>Roll Number</TableHead>
-            <TableHead>Email</TableHead>
-            {entries.map((e) => (
-              <TableHead key={e.subjectId}>
-                {e.subject.name}
-                <div className="text-xs text-muted-foreground">
-                  (Max: {e.maxMarks}, Min: {e.minMarks})
+            {[
+              { label: "Student", key: "fullName" },
+              { label: "Roll No.", key: "rollNumber" },
+              { label: "Email", key: "email" },
+            ].map(({ label, key }) => (
+              <TableHead
+                key={key}
+                onClick={() => toggleSort(key)}
+                className="cursor-pointer select-none whitespace-nowrap font-semibold"
+              >
+                <div className="flex items-center">
+                  {label}
+                  {getSortIcon(key)}
                 </div>
               </TableHead>
             ))}
-            <TableHead>
-              Total
-              <div className="text-xs text-muted-foreground">
-                Max: {totalMax}
-                <br />
-                Min: {totalMin}
+            {entries.map((e) => (
+              <TableHead
+                key={e.subjectId}
+                onClick={() => toggleSort(`subject-${e.subjectId}`)}
+                className="cursor-pointer select-none whitespace-nowrap font-semibold"
+              >
+                <div className="flex flex-col">
+                  <div className="flex items-center">
+                    {e.subject.name}
+                    {getSortIcon(`subject-${e.subjectId}`)}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Max: {e.maxMarks}, Min: {e.minMarks}
+                  </span>
+                </div>
+              </TableHead>
+            ))}
+            <TableHead
+              onClick={() => toggleSort("total")}
+              className="cursor-pointer select-none whitespace-nowrap font-semibold"
+            >
+              <div className="flex flex-col">
+                <div className="flex items-center">
+                  Total
+                  {getSortIcon("total")}
+                </div>
               </div>
             </TableHead>
-            <TableHead>Rank</TableHead>
+            <TableHead
+              onClick={() => toggleSort("rank")}
+              className="cursor-pointer select-none whitespace-nowrap font-semibold text-center"
+            >
+              <div className="flex items-center justify-center">
+                Rank {getSortIcon("rank")}
+              </div>
+            </TableHead>
           </TableRow>
         </TableHeader>
 
         <TableBody>
-          {studentRows.map((row, idx) => (
+          {sortedRows.map((row, idx) => (
             <TableRow
               key={row.student.id}
-              className={idx % 2 === 0 ? "bg-gray-50" : ""}
+              className={`transition-all ${
+                idx % 2 === 0
+                  ? "bg-gray-50 dark:bg-gray-800/40"
+                  : "bg-white dark:bg-gray-900"
+              } hover:bg-blue-50 dark:hover:bg-blue-900/20`}
             >
               <TableCell className="font-medium">
                 {row.student.fullName}
               </TableCell>
-              <TableCell className="font-medium">
-                {row.student.rollNumber || "N/A"}
-              </TableCell>
+              <TableCell>{row.student.rollNumber}</TableCell>
               <TableCell>{row.student.email}</TableCell>
               {entries.map((e) => {
                 const m = row.marks[e.subjectId];
@@ -227,14 +313,29 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
                 );
               })}
               <TableCell
-                className={
-                  row.hasFailed ? "text-red-600 font-semibold" : "font-semibold"
-                }
+                className={`font-semibold ${
+                  row.hasFailed
+                    ? "text-red-600"
+                    : "text-green-700 dark:text-green-400"
+                }`}
               >
                 {row.total}
               </TableCell>
-              <TableCell className="font-bold text-center">
-                {row.rank ?? "-"}
+              <TableCell className="text-center font-bold">
+                {row.rank === 1 && (
+                  <span className=" text-xl text-yellow-500">1</span>
+                )}
+                {row.rank === 2 && (
+                  <span className=" text-xl text-gray-400">2</span>
+                )}
+                {row.rank === 3 && (
+                  <span className=" text-xl text-amber-800">3</span>
+                )}
+                {row.rank && row.rank > 3
+                  ? row.rank
+                  : row.rank === null
+                    ? "-"
+                    : ""}
               </TableCell>
             </TableRow>
           ))}

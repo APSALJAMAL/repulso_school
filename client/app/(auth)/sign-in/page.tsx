@@ -1,8 +1,8 @@
 import Link from "next/link";
 import GoogleOAuthBtn from "@/components/features/auth/GoogleOAuthBtn";
-import SigninForm from "@/components/features/auth/SigninForm";
+// import SigninForm from "@/components/features/auth/SigninForm";
 import AuthPromoAside from "@/components/features/auth/AuthPromoAside";
-import PenwwwsIcon from "@/components/icons/Penwwws";
+// import PenwwwsIcon from "@/components/icons/Penwwws";
 
 export default async function SigninPage({
   searchParams,
@@ -14,13 +14,13 @@ export default async function SigninPage({
   return (
     <div className="flex">
       <aside className="flex min-h-screen w-full flex-col items-center justify-between p-4 md:h-screen md:w-2/3 lg:w-1/2">
-        <Link
+        {/* <Link
           href="/"
           className="text-primary mb-auto flex w-fit items-center gap-1 self-start text-lg font-semibold md:hidden"
         >
           <PenwwwsIcon />
           <span>Repulso</span>
-        </Link>
+        </Link> */}
 
         <div className="flex h-full w-full flex-col items-start justify-center gap-6 md:w-[30rem]">
           <div className="flex flex-col gap-2">
@@ -35,7 +35,7 @@ export default async function SigninPage({
               </Link>
             </span>
           </div>
-          <SigninForm
+          {/* <SigninForm
             redirectUrl={inviteToken ? `/invite/${inviteToken}` : "/console"}
           />
 
@@ -45,7 +45,7 @@ export default async function SigninPage({
               or continue with
             </span>
             <span className="bg-border h-0.5 flex-grow"></span>
-          </div>
+          </div> */}
 
           <GoogleOAuthBtn
             redirectUrl={inviteToken ? `/invite/${inviteToken}` : ""}

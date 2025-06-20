@@ -86,7 +86,7 @@ export function AppSidebar({ activeSchoolId, userRole }: Props) {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar className="p-2 bg-white" collapsible="icon">
       <SidebarHeader>
         <Navlogo />
         <SchoolSwitcher activeSchoolId={activeSchoolId} />

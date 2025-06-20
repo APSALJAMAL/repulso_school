@@ -7,8 +7,8 @@ export default function Footer() {
       <div className="flex flex-col items-start justify-between md:flex-row">
         <div className="mb-8">
           <div className="mt-2 mb-5 flex items-center gap-2">
-            <PenwwwsIcon className="h-8 w-8" />
-            <h2 className="text-3xl font-bold">Penwwws</h2>
+            <PenwwwsIcon />
+            <h2 className="text-3xl font-bold">REPULSO</h2>
           </div>
           <p className="text-white/80 md:w-1/2">
             An all-in-one platform to manage students, staff, classes, and
@@ -20,19 +20,13 @@ export default function Footer() {
             <h3 className="text-lg font-semibold">Links</h3>
             <ul className="mt-2 flex flex-col gap-2">
               <li>
-                <Link
-                  href="https://github.com/abdullah-988/penwwws-frontend"
-                  className="text-white/80 hover:text-white"
-                >
-                  Github - Frontend
+                <Link href="#hero" className="text-white/80 hover:text-white">
+                  Policy
                 </Link>
               </li>
               <li>
-                <Link
-                  href="https://github.com/abdullah-988/penwwws-backend"
-                  className="text-white/80 hover:text-white"
-                >
-                  Github - Backend
+                <Link href="#hero" className="text-white/80 hover:text-white">
+                  Management
                 </Link>
               </li>
             </ul>
@@ -58,7 +52,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="mt-16 border-t border-white/20 py-4 text-white/80">
-        <p>&copy; 2025 Penwwws. All rights reserved.</p>
+        <p>&copy; 2025 REPULSO. All rights reserved.</p>
       </div>
     </footer>
   );

@@ -31,12 +31,10 @@ studentpage
 
 
 
-AUTH
 routes
 attendance teacher,box,sort,layout,backk button
 separate admin test
-exam back button
-exam mark layout,save,bb
+
 
 subject nav
 pagination
@@ -45,9 +43,8 @@ members profile
 markattendance
 
 ///////////////////////////////
-AUTH
-console
-lp
+
+
 
 //////////////////////////////
 

@@ -45,8 +45,8 @@ export default function LandingPageNavbar({
           },
         )}
       >
-        <PenwwwsIcon className="size-5 md:size-8" />
-        <h1 className="font-bold md:text-2xl">Penwwws</h1>
+        <PenwwwsIcon />
+        <h1 className="font-bold text-3xl">REPULSO</h1>
       </Link>
       <div className="text-sm md:text-base">
         <Link

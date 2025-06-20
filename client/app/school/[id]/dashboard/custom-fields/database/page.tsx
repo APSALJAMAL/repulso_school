@@ -21,6 +21,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CustomField, CustomValue, User, Group } from "@/types/custom";
+import { Loader2 } from "lucide-react";
 
 export default function CustomFieldTablePage() {
   const params = useParams();
@@ -35,6 +36,8 @@ export default function CustomFieldTablePage() {
   const [search, setSearch] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [modified, setModified] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [fieldInputs, setFieldInputs] = useState<Record<string, string>>({});
 
   const getToken = async () => await getCookie("token");
 
@@ -78,11 +81,6 @@ export default function CustomFieldTablePage() {
     try {
       setLoading(true);
       const token = await getToken();
-      const userRes = await axios.get("/me", {
-        headers: { Authorization: token },
-      });
-      const userId = userRes.data?.id;
-
       const [usersRes, valuesRes, fieldsRes] = await Promise.all([
         fetchUsers(),
         axios.get(`/values/school/${schoolId}`, {
@@ -96,6 +94,17 @@ export default function CustomFieldTablePage() {
       setUsers(usersRes);
       setFields(fieldsRes.data || []);
       setValues(valuesRes.data || []);
+
+      const initialInputs: Record<string, string> = {};
+      usersRes.forEach((user) => {
+        fieldsRes.data?.forEach((field: CustomField) => {
+          const val = valuesRes.data?.find(
+            (v: CustomValue) => v.userId === user.id && v.fieldId === field.id,
+          )?.value;
+          initialInputs[`${user.id}-${field.id}`] = val ?? "";
+        });
+      });
+      setFieldInputs(initialInputs);
     } catch (error) {
       toast.error("❌ Failed to load data");
     } finally {
@@ -111,24 +120,6 @@ export default function CustomFieldTablePage() {
     loadData();
   }, [selectedGroup, selectedRole]);
 
-  const getValue = (userId: number, fieldId: number) =>
-    values.find((v) => v.userId === userId && v.fieldId === fieldId)?.value ??
-    "";
-
-  const handleInputChange = (
-    userId: number,
-    fieldId: number,
-    value: string,
-    type: string,
-  ) => {
-    const key = `${userId}-${fieldId}`;
-    if (!validateValue(value, type)) {
-      toast.warning(`Invalid ${type.toLowerCase()} value`);
-      return;
-    }
-    setModified((prev) => ({ ...prev, [key]: value }));
-  };
-
   const validateValue = (value: string, type: string) => {
     switch (type) {
       case "NUMBER":
@@ -142,25 +133,59 @@ export default function CustomFieldTablePage() {
     }
   };
 
+  const saveFieldValue = async (
+    userId: number,
+    fieldId: number,
+    value: string,
+    type: string,
+    showToast = true,
+  ) => {
+    if (value.trim() === "") {
+      toast.warning("⚠️ You can't leave this field empty");
+      return;
+    }
+
+    if (!validateValue(value, type)) {
+      toast.warning(`Invalid ${type.toLowerCase()} value`);
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      await axios.post(
+        "/values",
+        { userId, fieldId, value, schoolId },
+        { headers: { Authorization: token } },
+      );
+      if (showToast) toast.success("✅ Value saved");
+    } catch (err) {
+      toast.error("❌ Failed to save value");
+    }
+  };
+
   const handleSaveAll = async () => {
-    const token = await getToken();
-    const entries = Object.entries(modified);
+    if (!Object.keys(modified).length) return;
+    setSaving(true);
+    toast.loading("Saving all values...");
     try {
       await Promise.all(
-        entries.map(([key, value]) => {
+        Object.entries(modified).map(([key, value]) => {
           const [userId, fieldId] = key.split("-").map(Number);
-          return axios.post(
-            "/values",
-            { userId, fieldId, value },
-            { headers: { Authorization: token } },
-          );
+          const field = fields.find((f) => f.id === fieldId);
+          return field
+            ? saveFieldValue(userId, fieldId, value, field.type, false)
+            : null;
         }),
       );
-      toast.success("✅ All changes saved");
+      toast.dismiss();
+      toast.success("✅ Database updated successfully");
       setModified({});
-      loadData();
     } catch (err) {
+      toast.dismiss();
       toast.error("❌ Failed to save all values");
+    } finally {
+      setSaving(false);
+      loadData();
     }
   };
 
@@ -170,47 +195,51 @@ export default function CustomFieldTablePage() {
       user.email.toLowerCase().includes(search.toLowerCase());
 
     const fieldMatch = fields.some((field) =>
-      getValue(user.id, field.id).toLowerCase().includes(search.toLowerCase()),
+      fieldInputs[`${user.id}-${field.id}`]
+        ?.toLowerCase()
+        .includes(search.toLowerCase()),
     );
 
     return baseMatch || fieldMatch;
   });
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-6 space-y-6">
+      <Card className="bg-yellow-100  border-yellow-400 text-yellow-800">
+        <CardContent className="p-4">
+          ⚠️ Once updated, You can't leave any field empty. Instead use "-" to
+          manage.
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <CardTitle className="text-2xl">Database View</CardTitle>
-            <div className="flex gap-4 flex-col sm:flex-row">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <CardTitle className="text-xl font-bold">
+              Custom Field Database
+            </CardTitle>
+            <div className="flex flex-wrap gap-2 items-center">
               <Input
                 placeholder="Search by name, email or field"
                 className="w-60"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <Select
-                value={selectedGroup}
-                onValueChange={(val) => setSelectedGroup(val)}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by group" />
+              <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Group" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Groups</SelectItem>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={String(group.id)}>
-                      {group.name}
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={String(g.id)}>
+                      {g.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select
-                value={selectedRole}
-                onValueChange={(val) => setSelectedRole(val)}
-              >
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filter by role" />
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Role" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
@@ -220,7 +249,10 @@ export default function CustomFieldTablePage() {
                   <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                 </SelectContent>
               </Select>
-              <Button onClick={handleSaveAll}>Save All</Button>
+              <Button onClick={handleSaveAll} disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save All
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -231,41 +263,22 @@ export default function CustomFieldTablePage() {
               <Skeleton className="h-80 w-full" />
             </>
           ) : (
-            <div className="overflow-auto">
-              <table className="  border border-gray-200 text-sm">
-                <thead className="bg-gray-100 text-gray-700">
+            <div className="overflow-auto rounded-lg border">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-100">
                   <tr>
-                    <th className="border px-4 py-2 resize-x overflow-auto">
-                      ID
-                    </th>
-                    <th className="border px-4 py-2 resize-x overflow-auto">
-                      Full Name
-                    </th>
-                    <th className="border px-4 py-2 resize-x overflow-auto">
-                      Roll Number
-                    </th>
-                    <th className="border px-4 py-2 resize-x overflow-auto">
-                      Email
-                    </th>
-                    <th className="border px-4 py-2 resize-x overflow-auto">
-                      Role
-                    </th>
-                    <th className="border px-4 py-2 resize-x overflow-auto">
-                      Photo
-                    </th>
-                    <th className="border px-4 py-2 resize-x overflow-auto">
-                      Groups
-                    </th>
-                    {fields.map((field) => (
-                      <th
-                        key={field.id}
-                        className="border px-4 py-2 resize-x overflow-auto"
-                      >
-                        <div className="flex  flex-col">
-                          <span className="font-medium">{field.label}</span>
-                          <span className="text-xs text-gray-500">
-                            {field.type}
-                          </span>
+                    <th className="border px-3 py-2 text-left">ID</th>
+                    <th className="border px-3 py-2 text-left">Name</th>
+                    <th className="border px-3 py-2 text-left">Roll No</th>
+                    <th className="border px-3 py-2 text-left">Email</th>
+                    <th className="border px-3 py-2 text-left">Role</th>
+                    <th className="border px-3 py-2 text-left">Photo</th>
+                    <th className="border px-3 py-2 text-left">Groups</th>
+                    {fields.map((f) => (
+                      <th key={f.id} className="border px-3 py-2 text-left">
+                        <div>
+                          <div className="font-semibold">{f.label}</div>
+                          <div className="text-xs text-gray-500">{f.type}</div>
                         </div>
                       </th>
                     ))}
@@ -273,19 +286,15 @@ export default function CustomFieldTablePage() {
                 </thead>
                 <tbody>
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="even:bg-gray-50">
-                      <td className="border px-4 py-2 resize-y">{user.id}</td>
-                      <td className="border px-4 py-2 resize-y">
-                        {user.fullName}
-                      </td>
-                      <td className="border px-4 py-2 resize-y">
+                    <tr key={user.id} className="">
+                      <td className="border px-3 py-2">{user.id}</td>
+                      <td className="border px-3 py-2">{user.fullName}</td>
+                      <td className="border px-3 py-2">
                         {user.rollNumber || "N/A"}
                       </td>
-                      <td className="border px-4 py-2 resize-y">
-                        {user.email}
-                      </td>
-                      <td className="border px-4 py-2 resize-y">{user.role}</td>
-                      <td className="border px-4 py-2 resize-y">
+                      <td className="border px-3 py-2">{user.email}</td>
+                      <td className="border px-3 py-2">{user.role}</td>
+                      <td className="border px-3 py-2">
                         {user.avatarUrl ? (
                           <img
                             src={user.avatarUrl}
@@ -296,29 +305,49 @@ export default function CustomFieldTablePage() {
                           "N/A"
                         )}
                       </td>
-                      <td className="border px-4 py-2 resize-y">
+                      <td className="border px-3 py-2">
                         {Array.isArray(user.groups)
                           ? user.groups.map((g) => g.name).join(", ") || "N/A"
                           : "N/A"}
                       </td>
                       {fields.map((field) => {
-                        const currentValue = getValue(user.id, field.id);
+                        const key = `${user.id}-${field.id}`;
+                        const currentValue = fieldInputs[key] ?? "";
                         return (
-                          <td
-                            key={`${user.id}-${field.id}`}
-                            className="border px-2 py-1 resize-y"
-                          >
+                          <td key={key} className="border px-2 py-1">
                             <Input
-                              defaultValue={currentValue}
-                              onBlur={(e) =>
-                                handleInputChange(
-                                  user.id,
-                                  field.id,
-                                  e.target.value,
-                                  field.type,
-                                )
-                              }
-                              className="h-8 text-sm"
+                              value={currentValue}
+                              placeholder="-"
+                              onChange={(e) => {
+                                const newValue = e.target.value;
+                                setFieldInputs((prev) => ({
+                                  ...prev,
+                                  [key]: newValue,
+                                }));
+                              }}
+                              onBlur={(e) => {
+                                const val = e.target.value;
+                                const originalVal =
+                                  values.find(
+                                    (v) =>
+                                      v.userId === user.id &&
+                                      v.fieldId === field.id,
+                                  )?.value ?? "";
+
+                                if (val !== originalVal) {
+                                  saveFieldValue(
+                                    user.id,
+                                    field.id,
+                                    val,
+                                    field.type,
+                                  );
+                                  setModified((prev) => ({
+                                    ...prev,
+                                    [key]: val,
+                                  }));
+                                }
+                              }}
+                              className="h-8 text-xs"
                             />
                           </td>
                         );

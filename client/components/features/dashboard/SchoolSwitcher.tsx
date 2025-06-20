@@ -77,14 +77,18 @@ export function SchoolSwitcher({ activeSchoolId }: Props) {
                   />
                 </Avatar>
 
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-sm leading-tight space-y-1.5">
                   <span className="truncate font-semibold">
                     {activeSchool.school.name}
+                  </span>
+                  <span className="text-xs font-medium bg-primary/20 text-primary px-2 py-0.5 rounded-full truncate inline-block w-fit">
+                    {activeSchool.school.members[0].role}
                   </span>
                   <span className="truncate text-xs">
                     {activeSchool.school.description}
                   </span>
                 </div>
+
                 <ChevronsUpDown className="ml-auto" />
               </SidebarMenuButton>
             </DropdownMenuTrigger>
@@ -115,6 +119,9 @@ export function SchoolSwitcher({ activeSchoolId }: Props) {
                     />
                   </Avatar>
                   {school.name}
+                  <span className="text-xs   font-medium bg-primary/20 text-primary px-2 py-0.5 rounded-full truncate inline-block w-fit">
+                    {school.members[0].role}
+                  </span>
                   <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </DropdownMenuItem>
               </Link>

@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { getRoleRedirectPath } from "@/lib/utils";
 import { SchoolsType } from "@/types/Schools";
+import { Badge } from "@/components/ui/badge";
 
 type Props = {
   setSchoolAction: Dispatch<SetStateAction<"select" | "create">>;
@@ -70,7 +71,7 @@ export default function SelectSchool({ setSchoolAction }: Props) {
     <section className="flex flex-col gap-8">
       <div>
         <h1 className="text-primary text-2xl font-semibold">
-          Choose your school on Repulso
+          Choose your school on REPULSO
         </h1>
         <p className="text-muted-foreground">
           Select the school that you want to access
@@ -94,6 +95,9 @@ export default function SelectSchool({ setSchoolAction }: Props) {
                 <h1 className="text-primary text-sm font-semibold">
                   {school.name}
                 </h1>
+                <Badge className="text-white bg-primary/70">
+                  {school.members[0].role}
+                </Badge>
                 <p className="text-muted-foreground text-sm">
                   {school.description}
                 </p>
