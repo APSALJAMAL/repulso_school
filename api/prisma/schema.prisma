@@ -21,7 +21,7 @@ model User {
   email           String      @unique
   isEmailVerified Boolean     @default(false)
   hashedPassword  String?
-  provider        AccountType @default(DEFAULT)   
+  provider        AccountType @default(DEFAULT)
 
   activateTokens      ActivateToken[]
   passwordResetTokens PasswordResetToken[]
@@ -36,11 +36,11 @@ model User {
   logs                Log[]                @relation("author")
   logsOn              Log[]                @relation("LogOn")
 
-  announcementMessages  AnnouncementMessage[]  @relation("UserAnnouncementMessages")
-  examMarks ExamMark[]
+  announcementMessages   AnnouncementMessage[]  @relation("UserAnnouncementMessages")
+  examMarks              ExamMark[]
   markAttendanceStatuses MarkAttendanceStatus[]
-  customFields        UserCustomField[]     @relation("CreatorFields")
-  customFieldValues   UserCustomFieldValue[]
+  customFields           UserCustomField[]      @relation("CreatorFields")
+  customFieldValues      UserCustomFieldValue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -50,6 +50,8 @@ model User {
   Group Group[]
 
   Exam Exam[]
+
+  AnnouncementBoard AnnouncementBoard[]
 }
 
 enum AccountType {
@@ -112,6 +114,7 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 ///////////////////////////
 model School {
   id          String  @id @default(cuid())
@@ -135,6 +138,8 @@ model School {
   UserCustomField UserCustomField[]
 
   Exam Exam[]
+
+  AnnouncementBoard AnnouncementBoard[]
 }
 
 model MemberOnSchools {
@@ -143,8 +148,8 @@ model MemberOnSchools {
   schoolId String
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  role Role @default(STUDENT)
-  rollNumber      String? 
+  role       Role    @default(STUDENT)
+  rollNumber String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -159,6 +164,7 @@ enum Role {
   TEACHER
   STUDENT
 }
+
 ////////////////////
 model Fingerprint {
   id      Int    @id @default(autoincrement())
@@ -174,6 +180,7 @@ model Fingerprint {
 
   @@unique([schoolId, userId])
 }
+
 ///////////////////////
 model Subject {
   id       Int     @id @default(autoincrement())
@@ -183,7 +190,7 @@ model Subject {
   schoolId String
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-   userId Int
+  userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   users          MemberOnSubject[]
@@ -194,9 +201,7 @@ model Subject {
   logs           Log[]
 
   examEntries ExamEntry[]
-  examMarks ExamMark[]
-
-
+  examMarks   ExamMark[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -256,6 +261,7 @@ enum Action {
   ATTENDANCE_SESSION_DELETE
   ATTENDANCE_DELETE
 }
+
 //////////////////////////
 model AttendanceSession {
   id             Int      @id @default(autoincrement())
@@ -294,6 +300,7 @@ model DeviceCredentials {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 /////////////////////////////////
 model Topic {
   id   Int    @id @default(autoincrement())
@@ -365,6 +372,7 @@ model Submission {
 
   @@unique([studentId, assignmentId])
 }
+
 ///////////////////////
 model Group {
   id   Int    @id @default(autoincrement())
@@ -377,18 +385,15 @@ model Group {
 
   schoolId String
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-   userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   members MemberOnGroup[]
 
   markAttendances MarkAttendance[]
 
-
   announcementBoard AnnouncementBoard[]
-  exams Exam[]
-
+  exams             Exam[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -403,6 +408,7 @@ model MemberOnGroup {
   @@id([groupId, userId])
   @@unique([groupId, userId])
 }
+
 //////////////////
 model MarksTableRow {
   id    Int     @id @default(autoincrement())
@@ -434,96 +440,98 @@ model MarkOnRow {
 
   @@unique([tableRowId, studentId])
 }
+
 //////////////////
 model AnnouncementBoard {
-  id        Int                   @id @default(autoincrement())
-  groupId   Int                   
-  group     Group                @relation(fields: [groupId], references: [id])
-  messages  AnnouncementMessage[]
+  id       Int                   @id @default(autoincrement())
+  groupId  Int
+  group    Group                 @relation(fields: [groupId], references: [id])
+  messages AnnouncementMessage[]
+  schoolId String
+  school   School                @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model AnnouncementMessage {
-  id           Int       @id @default(autoincrement())
-  content      String  
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  boardId      Int
-  board        AnnouncementBoard @relation(fields: [boardId], references: [id])
+  boardId Int
+  board   AnnouncementBoard @relation(fields: [boardId], references: [id])
 
-  createdById  Int
-  createdBy    User      @relation("UserAnnouncementMessages", fields: [createdById], references: [id])
+  createdById Int
+  createdBy   User @relation("UserAnnouncementMessages", fields: [createdById], references: [id])
 }
 
 ////////////////////////
 model Exam {
-  id        Int         @id @default(autoincrement())
-  name      String
-  batch     String?     // optional, like "Batch A" or "Science Stream"
+  id    Int     @id @default(autoincrement())
+  name  String
+  batch String? // optional, like "Batch A" or "Science Stream"
 
-  groupId   Int
-  group     Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  userId Int
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    schoolId String
+  groupId  Int
+  group    Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schoolId String
   school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
+  entries ExamEntry[]
 
-  entries   ExamEntry[]
-
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ExamEntry {
-  id        Int         @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   subjectId Int
-  subject   Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-  examId    Int
-  exam      Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId Int
+  exam   Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
 
-  date      DateTime
-  session   SessionType // FN or AN
-  time      String      // e.g. "09:00 - 12:00"
+  date    DateTime
+  session SessionType // FN or AN
+  time    String // e.g. "09:00 - 12:00"
 
-  maxMarks  Float
-  minMarks  Float?
+  maxMarks Float
+  minMarks Float?
 
   examMarks ExamMark[]
 
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([examId, subjectId]) // One subject per exam
 }
 
 enum SessionType {
-  FN  // Forenoon
-  AN  // Afternoon
+  FN // Forenoon
+  AN // Afternoon
 }
 
 model ExamMark {
-  id           Int        @id @default(autoincrement())
-  examEntryId  Int
-  studentId    Int
-  subjectId    Int
-  marks        Int
-  
+  id          Int @id @default(autoincrement())
+  examEntryId Int
+  studentId   Int
+  subjectId   Int
+  marks       Int
 
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  examEntry    ExamEntry  @relation(fields: [examEntryId], references: [id])
-  student      User       @relation(fields: [studentId], references: [id])
-  subject      Subject    @relation(fields: [subjectId], references: [id])
+  examEntry ExamEntry @relation(fields: [examEntryId], references: [id])
+  student   User      @relation(fields: [studentId], references: [id])
+  subject   Subject   @relation(fields: [subjectId], references: [id])
 
-@@unique([examEntryId, studentId, subjectId])
-
+  @@unique([examEntryId, studentId, subjectId])
 }
 
 //////////////////////
@@ -537,50 +545,49 @@ enum AttendanceStatus {
 }
 
 model MarkAttendance {
-  id        Int       @id @default(autoincrement())
-  title     String    // Title of the attendance session
-  note      String?   // Optional description or reason
-  groupId   Int
-  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  statuses  MarkAttendanceStatus[]
+  id       Int                    @id @default(autoincrement())
+  title    String // Title of the attendance session
+  note     String? // Optional description or reason
+  groupId  Int
+  group    Group                  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  statuses MarkAttendanceStatus[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([title, groupId]) // Ensures one attendance session with a title per group
 }
 
 model MarkAttendanceStatus {
-  id               Int              @id @default(autoincrement())
-  attendanceId     Int
-  attendance       MarkAttendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  userId           Int
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status           AttendanceStatus
-  date             DateTime         // Actual date of the user's attendance status
+  id           Int              @id @default(autoincrement())
+  attendanceId Int
+  attendance   MarkAttendance   @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  userId       Int
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       AttendanceStatus
+  date         DateTime // Actual date of the user's attendance status
 
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-   @@unique([attendanceId, userId, date]) // ✅ Updated constraint
+  @@unique([attendanceId, userId, date]) // ✅ Updated constraint
 }
-
 
 /////////////////////
 
 model UserCustomField {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation("CreatorFields", fields: [userId], references: [id], onDelete: Cascade)
-  schoolId  String
-  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  id       Int    @id @default(autoincrement())
+  userId   Int
+  user     User   @relation("CreatorFields", fields: [userId], references: [id], onDelete: Cascade)
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  label     String
-  key       String
-  type      FieldType
-  required  Boolean  @default(false)
+  label    String
+  key      String
+  type     FieldType
+  required Boolean   @default(false)
 
-  values    UserCustomFieldValue[]
+  values UserCustomFieldValue[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -589,12 +596,12 @@ model UserCustomField {
 }
 
 model UserCustomFieldValue {
-  id        Int      @id @default(autoincrement())
-  fieldId   Int
-  field     UserCustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  id      Int             @id @default(autoincrement())
+  fieldId Int
+  field   UserCustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   value     String
   createdAt DateTime @default(now())
@@ -609,15 +616,5 @@ enum FieldType {
   DATE
   BOOLEAN
 }
+
 /////////////
-
-
-
-
-
-
-
-
-
-
-

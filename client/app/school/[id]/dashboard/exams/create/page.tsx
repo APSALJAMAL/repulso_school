@@ -105,7 +105,7 @@ export default function CreateExamPage() {
   };
 
   return (
-    <div className="flex items-center justify-center bg-muted/20 min-h-screen">
+    <div className="flex items-center justify-center bg-muted/20 pt-40">
       <Card className="w-full max-w-xl shadow-lg border-primary/20">
         <CardHeader>
           <CardTitle className="text-2xl text-primary">

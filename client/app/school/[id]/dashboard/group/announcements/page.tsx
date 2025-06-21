@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/exhaustive-deps */
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,92 +11,226 @@ import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Pencil, Trash } from "lucide-react";
 import { getCookie } from "cookies-next";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+
 interface AnnouncementBoard {
   id: number;
   groupId: number;
   createdAt: string;
+  userId: number;
   group: {
+    id: number;
     name: string;
+    userId: number;
   };
+}
+
+interface Group {
+  id: number;
+  name: string;
+  userId: number;
 }
 
 export default function AnnouncementsPage() {
   const params = useParams();
-  const schoolId = params.id;
+  const schoolId = params.id as string;
+
   const [boards, setBoards] = useState<AnnouncementBoard[]>([]);
-  const [groupId, setGroupId] = useState("");
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [userGroups, setUserGroups] = useState<number[]>([]);
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingGroupId, setEditingGroupId] = useState("");
+  const [userId, setUserId] = useState<number | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const fetchToken = (): string => {
+    const rawToken = getCookie("token");
+    return typeof rawToken === "string" ? rawToken : "";
+  };
+
+  const fetchUserId = async () => {
+    const token = fetchToken();
+    if (!token) return;
+
+    try {
+      const res = await fetch("http://localhost:5555/api/me", {
+        headers: { Authorization: token },
+      });
+      const data = await res.json();
+      if (res.ok && data?.id) {
+        setUserId(data.id);
+      }
+    } catch (err) {
+      console.error("Error fetching user ID:", err);
+    }
+  };
+
+  const fetchGroups = async () => {
+    const token = fetchToken();
+    if (!token || !schoolId) return;
+
+    try {
+      const res = await fetch(
+        `http://localhost:5555/api/school/${schoolId}/group`,
+        {
+          headers: { Authorization: token },
+        },
+      );
+      const data = await res.json();
+      const groupList = Array.isArray(data) ? data : data.groups || [];
+
+      setGroups(groupList);
+      setUserGroups(groupList.map((g: Group) => g.id));
+    } catch (err) {
+      console.error("Error fetching groups:", err);
+    }
+  };
 
   const fetchBoards = async () => {
-    const res = await fetch("http://localhost:5555/api/announcements/boards");
-    const data = await res.json();
-    setBoards(Array.isArray(data) ? data : (data.boards ?? []));
+    try {
+      const res = await fetch("http://localhost:5555/api/announcements/boards");
+      const data = await res.json();
+      const allBoards = Array.isArray(data) ? data : (data.boards ?? []);
+
+      // Filter boards to only those the current user has group access to
+      const filteredBoards = allBoards.filter((b: AnnouncementBoard) =>
+        userGroups.includes(b.groupId),
+      );
+
+      setBoards(filteredBoards);
+    } catch (err) {
+      console.error("Error fetching boards:", err);
+    }
   };
 
   useEffect(() => {
-    fetchBoards();
+    fetchUserId();
   }, []);
 
+  useEffect(() => {
+    if (userId) {
+      fetchGroups();
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userGroups.length > 0) {
+      fetchBoards();
+    }
+  }, [userGroups]);
+
   const handleCreate = async () => {
-    if (!groupId.trim()) return;
-    const rawToken = getCookie("token");
-    const token = typeof rawToken === "string" ? rawToken : "";
+    if (!selectedGroupId || !schoolId || !userId) return;
 
-    await fetch("http://localhost:5555/api/announcements/board", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: token,
-      },
-      body: JSON.stringify({ groupId: Number(groupId) }),
-    });
+    const token = fetchToken();
+    setCreating(true);
 
-    setGroupId("");
-    fetchBoards();
+    try {
+      const res = await fetch("http://localhost:5555/api/announcements/board", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+        },
+        body: JSON.stringify({
+          groupId: Number(selectedGroupId),
+          schoolId,
+          userId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data?.error?.toLowerCase()?.includes("already")) {
+          toast.warning("Board already exists for this group.");
+        } else {
+          toast.error(data?.error || "Failed to create board.");
+        }
+        return;
+      }
+
+      toast.success("Board created successfully!");
+      setSelectedGroupId("");
+      await fetchGroups(); // refresh userGroups
+      await fetchBoards(); // filtered again
+    } catch (err) {
+      console.error("Error creating board:", err);
+      toast.error("Something went wrong while creating the board.");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
-    const confirm = window.confirm("Delete this board?");
-    if (!confirm) return;
+    try {
+      await fetch(`http://localhost:5555/api/announcements/board/${id}`, {
+        method: "DELETE",
+      });
 
-    await fetch(`http://localhost:5555/api/announcements/board/${id}`, {
-      method: "DELETE",
-    });
-
-    fetchBoards();
+      toast.success("Board deleted");
+      fetchGroups();
+      fetchBoards();
+    } catch (err) {
+      console.error("Error deleting board:", err);
+      toast.error("Failed to delete board.");
+    }
   };
 
   const handleUpdate = async (id: number) => {
     if (!editingGroupId.trim()) return;
 
-    await fetch(`http://localhost:5555/api/announcements/board/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ groupId: Number(editingGroupId) }),
-    });
+    try {
+      await fetch(`http://localhost:5555/api/announcements/board/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: Number(editingGroupId) }),
+      });
 
-    setEditingId(null);
-    setEditingGroupId("");
-    fetchBoards();
+      toast.success("Board updated");
+      setEditingId(null);
+      setEditingGroupId("");
+      fetchGroups();
+      fetchBoards();
+    } catch (err) {
+      console.error("Error updating board:", err);
+      toast.error("Failed to update board.");
+    }
   };
 
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Announcement Boards</h1>
 
-      {/* Create new board */}
-      <div className="flex w-2xs gap-2">
-        <Input
-          type="number"
-          placeholder="Enter Group ID"
-          value={groupId}
-          onChange={(e) => setGroupId(e.target.value)}
-        />
-        <Button onClick={handleCreate}>Create Board</Button>
+      <div className="flex w-fit gap-2 items-center">
+        <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="Select Group" />
+          </SelectTrigger>
+          <SelectContent>
+            {groups.map((group) => (
+              <SelectItem key={group.id} value={String(group.id)}>
+                {group.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          onClick={handleCreate}
+          disabled={!userId || !selectedGroupId || creating}
+        >
+          {creating ? "Creating..." : "Create Board"}
+        </Button>
       </div>
 
-      {/* Boards list */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {boards.map((board) => (
           <Card key={board.id} className="hover:shadow-lg transition">
@@ -109,7 +245,6 @@ export default function AnnouncementsPage() {
                     Group Id {board.groupId}
                   </Badge>
                 </h2>
-
                 <p className="text-sm text-gray-500">
                   Created at {new Date(board.createdAt).toLocaleString()}
                 </p>

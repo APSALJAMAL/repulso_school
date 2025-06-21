@@ -3,25 +3,40 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export const createBoard = async (req: Request, res: Response) => {
-  const { groupId } = req.body;
 
-  if (!groupId || isNaN(Number(groupId))) {
-    return res.status(400).json({ error: "Invalid or missing groupId" });
+export const createBoard = async (req: Request, res: Response) => {
+  const { groupId, schoolId, userId } = req.body;
+
+  if (!groupId || !schoolId || !userId) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   try {
+    const existing = await prisma.announcementBoard.findFirst({
+      where: { groupId },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "Board already exists for this group" });
+    }
+
     const board = await prisma.announcementBoard.create({
       data: {
-        group: { connect: { id: Number(groupId) } },
+        group: { connect: { id: groupId } },
+        school: { connect: { id: schoolId } },
+        user: { connect: { id: userId } },
       },
     });
+
     res.status(201).json(board);
   } catch (error) {
     console.error("Error creating board:", error);
     res.status(500).json({ error: "Failed to create board", detail: error });
   }
 };
+
+
+
 
 export const getBoards = async (_req: Request, res: Response) => {
   try {

@@ -19,7 +19,7 @@ export function Navlogo() {
           <Avatar className="size-8 rounded-lg overflow-hidden">
             <AvatarImage src={logo.src} alt="Logo" />
             <AvatarFallback className="rounded-lg text-xl font-bold bg-muted text-muted-foreground">
-              R
+              AJ
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col justify-center leading-none">

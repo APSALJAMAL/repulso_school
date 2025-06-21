@@ -5,6 +5,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 import { getSchool } from "@/fetches/school";
 import { redirect } from "next/navigation";
 
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
           </div>
         </header>
         {children}
+        <Toaster />
       </SidebarInset>
     </SidebarProvider>
   );
