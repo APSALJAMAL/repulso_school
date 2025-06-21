@@ -1,6 +1,6 @@
 import { Exam } from "@/types/exam";
 
-const API_BASE_URL = "http://localhost:5555/api/exams";
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams`;
 
 export const getExams = async (): Promise<Exam[]> => {
   const res = await fetch(`${API_BASE_URL}`, {

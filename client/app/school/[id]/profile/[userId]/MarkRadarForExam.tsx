@@ -91,7 +91,7 @@ export default function ExamRadarChart({ user }: Props) {
     const fetchExams = async () => {
       try {
         const res = await fetch(
-          `http://localhost:5555/api/exams/user/${user.id}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/user/${user.id}`,
         );
         if (!res.ok) throw new Error("Failed to fetch exam marks");
         const result = await res.json();
@@ -100,7 +100,7 @@ export default function ExamRadarChart({ user }: Props) {
         const updatedExams = await Promise.all(
           examList.map(async (exam) => {
             const res2 = await fetch(
-              `http://localhost:5555/api/exams/${exam.id}`,
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/${exam.id}`,
             );
             const details = await res2.json();
             return { ...exam, entries: details.entries || [] };

@@ -30,7 +30,7 @@ const GroupMembersPage = () => {
     const fetchMembers = async () => {
       try {
         const response = await fetch(
-          `http://localhost:5555/api/school/${id}/group/${groupId}/member`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${id}/group/${groupId}/member`,
         );
         if (!response.ok) throw new Error("Failed to fetch members");
 

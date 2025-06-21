@@ -94,10 +94,14 @@ export default function ExamMarksTable({ examId, schoolId, groupId }: Props) {
       try {
         const [groupRes, marksRes, entriesRes] = await Promise.all([
           axios.get(
-            `http://localhost:5555/api/school/${schoolId}/group/${groupId}/member`,
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/group/${groupId}/member`,
           ),
-          axios.get(`http://localhost:5555/api/exam-marks/${examId}`),
-          axios.get(`http://localhost:5555/api/exams/${examId}`),
+          axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exam-marks/${examId}`,
+          ),
+          axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/${examId}`,
+          ),
         ]);
 
         const members = (

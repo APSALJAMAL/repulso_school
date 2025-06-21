@@ -23,11 +23,14 @@ export default function CreateAttendance({ groupId }: Props) {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:5555/api/markattendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId, title, note }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId, title, note }),
+        },
+      );
 
       if (!res.ok) {
         const err = await res.json();

@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   const role = school.members[0].role.toLowerCase();
 
   if (role != "admin" && role != "super_admin") {
-    redirect(`/school/${activeSchoolId}/home`);
+    redirect("/unauthorized");
   }
 
   return (

@@ -33,7 +33,7 @@ export default function AttendanceList({ groupId, schoolId }: Props) {
     setLoading(true);
     try {
       const res = await fetch(
-        `http://localhost:5555/api/markattendance/${groupId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance/${groupId}`,
       );
       const data = await res.json();
 
@@ -59,7 +59,7 @@ export default function AttendanceList({ groupId, schoolId }: Props) {
     if (!selected) return;
     try {
       const res = await fetch(
-        `http://localhost:5555/api/markattendance/${selected.id}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance/${selected.id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -83,7 +83,7 @@ export default function AttendanceList({ groupId, schoolId }: Props) {
   const handleDelete = async (id: number) => {
     try {
       const res = await fetch(
-        `http://localhost:5555/api/markattendance/${id}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance/${id}`,
         {
           method: "DELETE",
         },

@@ -1,48 +1,4 @@
 
-social media
-
-
-
-
-
-
-
-
-assignment submit
-
-
-
-
-
-loading
-subject mark
-
-protect route
-
-
-TEACHER
-members
-studentpage
-
-
-
-
-
-routes
-
-separate admin test
-
-
-
-
-
-
-
-///////////////////////////////
-
-
-
-//////////////////////////////
 
 /-even unauthorized can access
 /sign-in,/sign-up,/console - even unauthorized can access
@@ -52,9 +8,11 @@ school/:id/profile/:userId/groups/:groupId - student ,teacher
 school/:id/profile/:userId - access to all even unauthorized
 school/:id/profile/:userId/details - student ,teacher
 school/:id/subjects/* - student,teacher,admin,super_admin
+
 school/:id/dashboard - admin
 school/:id/dashboard/subjects - admin
 school/:id/dashboard/group/*- admin
+
 school/:id/dashboard/custom-fields/database - super_admin
 school/:id/dashboard/custom-fields/* - super_admin
 school/:id/dashboard/settings - super_admin

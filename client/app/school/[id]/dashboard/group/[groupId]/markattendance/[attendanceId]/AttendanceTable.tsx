@@ -74,7 +74,7 @@ export default function MonthlyAttendance({
   const fetchMembers = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5555/api/school/${schoolId}/group/${groupId}/member`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/group/${groupId}/member`,
       );
       const data = await res.json();
       const formatted = Array.isArray(data.members)
@@ -95,7 +95,7 @@ export default function MonthlyAttendance({
     try {
       const m = format(monthStart, "yyyy-MM");
       const res = await fetch(
-        `http://localhost:5555/api/markattendance/${attendanceId}/statuses?month=${m}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance/${attendanceId}/statuses?month=${m}`,
       );
       const data = await res.json();
       const normalized = data.map((entry: any) => ({
@@ -115,7 +115,7 @@ export default function MonthlyAttendance({
   ) => {
     const status = val as AttendanceStatus;
     await fetch(
-      `http://localhost:5555/api/markattendance/${attendanceId}/status`,
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance/${attendanceId}/status`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

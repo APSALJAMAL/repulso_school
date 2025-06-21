@@ -22,7 +22,7 @@ export default function GroupListPage() {
     async function fetchGroups() {
       try {
         const res = await fetch(
-          `http://localhost:5555/api/user/${userId}/groups`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/user/${userId}/groups`,
         );
 
         if (!res.ok) {

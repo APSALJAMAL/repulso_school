@@ -40,7 +40,7 @@ export default function CreateExamPage() {
         if (!token) throw new Error("Token missing");
 
         const res = await fetch(
-          `http://localhost:5555/api/school/${schoolId}/group`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/group`,
           {
             headers: { Authorization: token },
           },
@@ -79,14 +79,17 @@ export default function CreateExamPage() {
         return;
       }
 
-      const res = await fetch("http://localhost:5555/api/exams", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
+      const res = await fetch(
+        "${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify({ name, batch, groupId, schoolId }), // ✅ send schoolId
         },
-        body: JSON.stringify({ name, batch, groupId, schoolId }), // ✅ send schoolId
-      });
+      );
 
       if (res.ok) {
         toast.success("✅ Exam created successfully");

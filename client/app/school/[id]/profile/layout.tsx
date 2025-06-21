@@ -6,7 +6,9 @@ import { ReactNode, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Home, Boxes, UserRound, FileUser } from "lucide-react";
 import { getUser } from "@/fetches/user";
+import { getCookie } from "cookies-next";
 import Navbar from "@/components/shared/Navbar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   children: ReactNode;
@@ -35,9 +37,17 @@ export default function GroupLayoutClient({ children }: Props) {
 
   const [userId, setUserId] = useState<number | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
+      const token = getCookie("token");
+
+      if (!token) {
+        setLoading(false); // No token, user is not logged in
+        return;
+      }
+
       try {
         const currentUser = await getUser();
         if (currentUser?.id) {
@@ -46,19 +56,34 @@ export default function GroupLayoutClient({ children }: Props) {
         }
       } catch (err) {
         console.error("User fetch failed:", err);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchUser();
   }, []);
 
-  if (!schoolId || !user) {
-    return <div className="p-6">Loading...</div>;
+  if (!schoolId || loading) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-16 w-16 rounded-full" />
+          <div className="space-y-2 w-full">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+        </div>
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Top Navbar */}
-      <header className="z-40 fixed top-0 left-0 right-0 bg-white shadow ">
+      <header className="z-40 fixed top-0 left-0 right-0 bg-white shadow">
         <Navbar schoolId={schoolId} user={user} />
       </header>
 

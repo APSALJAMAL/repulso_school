@@ -15,7 +15,7 @@ export interface TimetableEntry extends TimetableEntryInput {
   teacher?: { id: number; fullName: string };
 }
 
-const API_BASE = "http://localhost:5555/api/timetable";
+const API_BASE = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/timetable`;
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {

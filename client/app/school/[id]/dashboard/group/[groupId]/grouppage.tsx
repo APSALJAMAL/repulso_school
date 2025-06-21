@@ -41,7 +41,7 @@ const GroupPageClient: React.FC<Props> = ({ id, groupId }) => {
 
       try {
         const res = await fetch(
-          `http://localhost:5555/api/school/${id}/group/${groupId}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${id}/group/${groupId}`,
         );
 
         if (!res.ok) {

@@ -27,13 +27,13 @@ export default function AddSubjectMembersModal({ schoolId, subject }: Props) {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const token = getCookie("token");
+        const token = getCookie("token")?.toString() || "";
+        console.log("Token:", token);
+
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/member`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: token },
           },
         );
 

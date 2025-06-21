@@ -7,17 +7,16 @@ export async function getSchool(schoolId: string) {
     const cookieStore = cookies();
     const token = (await cookieStore).get("token")?.value;
 
-    if (!token) {
-      throw new Error("Unauthorized: No token found");
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = token;
     }
 
-    const res = await axios.get(`/school/${schoolId}`, {
-      headers: { Authorization: token },
-    });
+    const res = await axios.get(`/school/${schoolId}`, { headers });
 
     return res.data;
   } catch (err: any) {
     console.error(err?.response?.data || "Unexpected error occurred");
-    return null; // Return null to avoid crashing
+    return null;
   }
 }

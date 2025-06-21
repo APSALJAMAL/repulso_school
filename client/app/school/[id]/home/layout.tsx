@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Home, Boxes, UserRound, FileUser } from "lucide-react";
 import { getUser } from "@/fetches/user";
 import Navbar from "@/components/shared/Navbar";
@@ -31,34 +31,43 @@ const SidebarItem = ({
 
 export default function GroupLayoutClient({ children }: Props) {
   const params = useParams();
+  const router = useRouter();
   const schoolId = params?.id as string;
 
   const [userId, setUserId] = useState<number | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const currentUser = await getUser();
+
         if (currentUser?.id) {
           setUserId(currentUser.id);
           setUser(currentUser);
+        } else {
+          router.replace("/unauthorized");
         }
       } catch (err) {
         console.error("User fetch failed:", err);
+        router.replace("/unauthorized");
+      } finally {
+        setLoading(false);
       }
     };
-    fetchUser();
-  }, []);
 
-  if (!schoolId || !user) {
+    fetchUser();
+  }, [router]);
+
+  if (loading || !schoolId) {
     return <div className="p-6">Loading...</div>;
   }
 
   return (
     <div className="flex flex-col min-h-screen">
       {/* Top Navbar */}
-      <header className="z-40 fixed top-0 left-0 right-0 bg-white shadow ">
+      <header className="z-40 fixed top-0 left-0 right-0 bg-white shadow">
         <Navbar schoolId={schoolId} user={user} />
       </header>
 

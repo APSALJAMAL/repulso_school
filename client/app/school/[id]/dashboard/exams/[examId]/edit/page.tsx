@@ -45,7 +45,7 @@ export default function EditExamPage() {
   const fetchGroups = async () => {
     try {
       const res = await fetch(
-        `http://localhost:5555/api/school/${schoolId}/group`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/group`,
       );
       const data = await res.json();
       setGroups(data);
@@ -56,7 +56,9 @@ export default function EditExamPage() {
 
   const fetchExamDetails = async () => {
     try {
-      const res = await fetch(`http://localhost:5555/api/exams/${examId}`);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/${examId}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch exam");
 
       const exam = await res.json();
@@ -76,11 +78,14 @@ export default function EditExamPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5555/api/exams/${examId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, batch, groupId }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/${examId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, batch, groupId }),
+        },
+      );
 
       if (res.ok) {
         toast.success("✅ Exam updated successfully");

@@ -76,7 +76,7 @@ export default function GroupDetailsPage() {
     async function fetchGroup() {
       try {
         const res = await fetch(
-          `http://localhost:5555/api/school/${schoolId}/group/${groupId}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/group/${groupId}`,
         );
         const data = await res.json();
         setGroup(data);
@@ -88,7 +88,7 @@ export default function GroupDetailsPage() {
     async function fetchBoardsWithMessages() {
       try {
         const res = await fetch(
-          "http://localhost:5555/api/announcements/boards",
+          "${process.env.NEXT_PUBLIC_BACKEND_URL}/api/announcements/boards",
         );
         const boardsData = await res.json();
         if (!Array.isArray(boardsData))
@@ -100,7 +100,7 @@ export default function GroupDetailsPage() {
         const boardsWithMessages: AnnouncementBoard[] = await Promise.all(
           groupBoards.map(async (board) => {
             const msgRes = await fetch(
-              `http://localhost:5555/api/announcements/board/${board.id}/messages`,
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/announcements/board/${board.id}/messages`,
             );
             const messages = await msgRes.json();
             return { ...board, messages };
@@ -115,7 +115,7 @@ export default function GroupDetailsPage() {
     async function fetchAttendances() {
       try {
         const res = await fetch(
-          `http://localhost:5555/api/markattendance/${groupId}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance/${groupId}`,
         );
         const data = await res.json();
         if (!Array.isArray(data))
@@ -128,7 +128,9 @@ export default function GroupDetailsPage() {
 
     async function fetchExams() {
       try {
-        const res = await fetch("http://localhost:5555/api/exams");
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams`,
+        );
         const data = await res.json();
         if (!Array.isArray(data)) throw new Error("Invalid exams response");
         const groupExams = data.filter(
@@ -159,7 +161,7 @@ export default function GroupDetailsPage() {
     }
   }, [schoolId, groupId]);
 
-  if (loading) return <p className="p-6 text-gray-500">Loading...</p>;
+  if (loading) return <p className="p-6 text-gray-500"></p>;
   if (!group) return <p className="p-6 text-red-500">Group not found.</p>;
 
   return (

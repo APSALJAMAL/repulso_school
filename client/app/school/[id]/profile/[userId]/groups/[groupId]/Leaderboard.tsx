@@ -63,7 +63,9 @@ export default function Leaderboard({
   useEffect(() => {
     async function fetchExams() {
       try {
-        const res = await axios.get("http://localhost:5555/api/exams");
+        const res = await axios.get(
+          "${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams",
+        );
         const filtered = (res.data ?? []).filter(
           (exam: Exam) => String(exam.groupId) === groupId,
         );
@@ -85,10 +87,14 @@ export default function Leaderboard({
       try {
         const [groupRes, marksRes, examRes] = await Promise.all([
           axios.get(
-            `http://localhost:5555/api/school/${schoolId}/group/${groupId}/member`,
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/group/${groupId}/member`,
           ),
-          axios.get(`http://localhost:5555/api/exam-marks/${selectedExamId}`),
-          axios.get(`http://localhost:5555/api/exams/${selectedExamId}`),
+          axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exam-marks/${selectedExamId}`,
+          ),
+          axios.get(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/${selectedExamId}`,
+          ),
         ]);
 
         const members: Student[] = Array.isArray(groupRes.data)

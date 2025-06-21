@@ -65,7 +65,7 @@ export default function UserAttendancePieChart({ userId, attendances }: Props) {
     const month = format(monthStart, "yyyy-MM");
     try {
       const res = await fetch(
-        `http://localhost:5555/api/markattendance/${selectedAttendanceId}/statuses?month=${month}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/markattendance/${selectedAttendanceId}/statuses?month=${month}`,
       );
       const data: any[] = await res.json();
 

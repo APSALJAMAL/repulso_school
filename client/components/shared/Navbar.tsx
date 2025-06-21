@@ -37,6 +37,10 @@ export type SchoolType = {
 export async function getSchool(schoolId: string) {
   try {
     const token = await getCookie("token");
+    if (!token) {
+      console.warn("No token found — skipping school fetch.");
+      return null;
+    }
     const res = await axios.get(`/school/${schoolId}`, {
       headers: { Authorization: token },
     });
@@ -76,36 +80,35 @@ export default function Navbar({ schoolId, user }: Props) {
   return (
     <nav className="flex items-center justify-between border-b p-4 md:p-6">
       <div className="flex h-14 items-center gap-4 lg:h-[60px]">
-        {isSchoolLoading || !school ? (
-          <Skeleton className="size-12 rounded-full" />
-        ) : (
-          <>
-            {/* App Logo */}
+        <>
+          {/* Always show app logo and name */}
+          <Image src={logo} alt="Logo" className="size-12" />
+          <div className="flex flex-col leading-none">
+            <span className="text-2xl font-extrabold">REPULSO</span>
+            <span className="text-primary text-sm tracking-wider">
+              EDUCATION
+            </span>
+          </div>
 
-            <Image src={logo} alt="Logo" className="size-12" />
-            <div className="flex flex-col leading-none">
-              <span className="text-2xl font-extrabold">REPULSO</span>
-              <span className="text-primary text-sm tracking-wider">
-                EDUCATION
-              </span>
-            </div>
-
-            {/* Separator */}
-            <span className="text-3xl text-gray-400 select-none">/</span>
-
-            {/* School logo and name */}
-            <Link
-              href={`/school/${schoolId}/${getRoleRedirectPath(school?.members?.[0]?.role ?? "member")}`}
-              className="flex items-center gap-2 font-semibold"
-            >
-              <Avatar className="size-12">
-                <AvatarImage src={school.logoUrl} />
-                <AvatarFallback>{getInitials(school.name)}</AvatarFallback>
-              </Avatar>
-              <h1 className="text-lg hover:underline">{school.name}</h1>
-            </Link>
-          </>
-        )}
+          {/* Conditionally show separator and school info */}
+          {isSchoolLoading ? (
+            <Skeleton className="size-12 rounded-full ml-4" />
+          ) : school ? (
+            <>
+              <span className="text-3xl text-gray-400 select-none mx-2">/</span>
+              <Link
+                href={`/school/${schoolId}/${getRoleRedirectPath(school.members?.[0]?.role ?? "member")}`}
+                className="flex items-center gap-2 font-semibold"
+              >
+                <Avatar className="size-12">
+                  <AvatarImage src={school.logoUrl} />
+                  <AvatarFallback>{getInitials(school.name)}</AvatarFallback>
+                </Avatar>
+                <h1 className="text-lg hover:underline">{school.name}</h1>
+              </Link>
+            </>
+          ) : null}
+        </>
       </div>
 
       {/* User Dropdown */}

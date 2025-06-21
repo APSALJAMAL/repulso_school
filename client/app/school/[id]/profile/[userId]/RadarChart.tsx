@@ -62,7 +62,9 @@ export default function MarkRadarAndTable({ user }: Props) {
   useEffect(() => {
     const fetchMarks = async () => {
       try {
-        const res = await fetch("http://localhost:5555/api/marks");
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/marks`,
+        );
         if (!res.ok) throw new Error("Failed to fetch marks");
         const data: Mark[] = await res.json();
 

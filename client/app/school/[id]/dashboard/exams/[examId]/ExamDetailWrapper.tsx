@@ -71,7 +71,9 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
 
   const fetchExam = async () => {
     try {
-      const res = await fetch(`http://localhost:5555/api/exams/${examId}`);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/${examId}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch exam");
       const data = await res.json();
       setExam(data);
@@ -100,19 +102,22 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
     }
 
     try {
-      const res = await fetch("http://localhost:5555/api/exams/entry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          examId: Number(examId),
-          subjectId: Number(form.subjectId),
-          maxMarks: parseFloat(form.maxMarks),
-          minMarks: form.minMarks ? parseFloat(form.minMarks) : null,
-          date: form.date.toISOString(),
-          session: form.session,
-          time: form.time,
-        }),
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/entry`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            examId: Number(examId),
+            subjectId: Number(form.subjectId),
+            maxMarks: parseFloat(form.maxMarks),
+            minMarks: form.minMarks ? parseFloat(form.minMarks) : null,
+            date: form.date.toISOString(),
+            session: form.session,
+            time: form.time,
+          }),
+        },
+      );
 
       if (!res.ok) throw new Error();
       toast.success("Subject added to exam");
@@ -130,7 +135,7 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
 
     try {
       const res = await fetch(
-        `http://localhost:5555/api/exams/entry/${entryId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/entry/${entryId}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -157,7 +162,7 @@ export default function ExamDetailClient({ examId, subjects }: Props) {
   const deleteEntry = async (entryId: number) => {
     try {
       const res = await fetch(
-        `http://localhost:5555/api/exams/entry/${entryId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/entry/${entryId}`,
         {
           method: "DELETE",
         },

@@ -61,7 +61,7 @@ export default function AnnouncementsPage() {
     if (!token) return;
 
     try {
-      const res = await fetch("http://localhost:5555/api/me", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/me`, {
         headers: { Authorization: token },
       });
       const data = await res.json();
@@ -79,7 +79,7 @@ export default function AnnouncementsPage() {
 
     try {
       const res = await fetch(
-        `http://localhost:5555/api/school/${schoolId}/group`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/school/${schoolId}/group`,
         {
           headers: { Authorization: token },
         },
@@ -96,7 +96,9 @@ export default function AnnouncementsPage() {
 
   const fetchBoards = async () => {
     try {
-      const res = await fetch("http://localhost:5555/api/announcements/boards");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/announcements/boards`,
+      );
       const data = await res.json();
       const allBoards = Array.isArray(data) ? data : (data.boards ?? []);
 
@@ -134,18 +136,21 @@ export default function AnnouncementsPage() {
     setCreating(true);
 
     try {
-      const res = await fetch("http://localhost:5555/api/announcements/board", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/announcements/board`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+          body: JSON.stringify({
+            groupId: Number(selectedGroupId),
+            schoolId,
+            userId,
+          }),
         },
-        body: JSON.stringify({
-          groupId: Number(selectedGroupId),
-          schoolId,
-          userId,
-        }),
-      });
+      );
 
       const data = await res.json();
 
@@ -172,9 +177,12 @@ export default function AnnouncementsPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`http://localhost:5555/api/announcements/board/${id}`, {
-        method: "DELETE",
-      });
+      await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/announcements/board/${id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       toast.success("Board deleted");
       fetchGroups();
@@ -189,11 +197,14 @@ export default function AnnouncementsPage() {
     if (!editingGroupId.trim()) return;
 
     try {
-      await fetch(`http://localhost:5555/api/announcements/board/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId: Number(editingGroupId) }),
-      });
+      await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/announcements/board/${id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId: Number(editingGroupId) }),
+        },
+      );
 
       toast.success("Board updated");
       setEditingId(null);

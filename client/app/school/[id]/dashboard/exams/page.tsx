@@ -38,9 +38,12 @@ export default function ExamsPage() {
 
         if (!token) throw new Error("Missing token");
 
-        const res = await fetch("http://localhost:5555/api/me", {
-          headers: { Authorization: token },
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/me`,
+          {
+            headers: { Authorization: token },
+          },
+        );
 
         if (!res.ok) {
           const errorText = await res.text();
@@ -67,7 +70,9 @@ export default function ExamsPage() {
     isLoading,
     mutate,
   } = useSWR<Exam[]>(
-    schoolId ? `http://localhost:5555/api/exams/school/${schoolId}` : null,
+    schoolId
+      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/school/${schoolId}`
+      : null,
     fetcher,
     {
       onError: () => toast.error("❌ Failed to fetch exams"),
@@ -80,9 +85,12 @@ export default function ExamsPage() {
 
     setLoadingId(examId);
     try {
-      const res = await fetch(`http://localhost:5555/api/exams/${examId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/exams/${examId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!res.ok) throw new Error();
 
